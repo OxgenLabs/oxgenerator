@@ -1,3 +1,3 @@
-pub fn print_help(){
+pub fn print_help() {
     println!("placeholder");
 }

@@ -37,9 +37,12 @@ impl fmt::Display for OxgenError {
                 write!(f, "Invalid name: {}", name)
             }
             OxgenError::ProjectAlreadyExists(path) => {
-                write!(f,"Project already exists: `{}/`. Use `--force` to overwrite it, but be careful: this will delete all existing content in `{}/`."
-    ,path, path)
-}
+                write!(
+                    f,
+                    "Project already exists: `{}/`. Use `--force` to overwrite it, but be careful: this will delete all existing content in `{}/`.",
+                    path, path
+                )
+            }
             OxgenError::ProjectNotFound => {
                 write!(f, "No Rust project found in the current directory")
             }

@@ -1,4 +1,4 @@
-use api::{
+use {{crate_name}}::{
     routes::health::health_routes,
     state::{AppState, SecretStore},
 };

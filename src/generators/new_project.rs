@@ -1,9 +1,13 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use include_dir::{Dir, DirEntry, include_dir};
+
 use crate::core::error::OxgenError;
 use crate::core::generator::Generator;
 use crate::core::result::OxgenResult;
+
+static PROJECT_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/project");
 
 pub struct NewProjectGenerator {
     name: String,
@@ -57,45 +61,25 @@ impl NewProjectGenerator {
         self.name.replace('-', "_")
     }
 
-    fn collect_template_files(&self) -> OxgenResult<Vec<(PathBuf, PathBuf)>> {
-        let template_root = self.template_root();
+    fn collect_template_files(&self) -> OxgenResult<Vec<PathBuf>> {
         let mut files = Vec::new();
 
-        self.collect_template_files_recursive(&template_root, &template_root, &mut files)?;
+        Self::collect_template_files_recursive(&PROJECT_TEMPLATES, &mut files);
 
         Ok(files)
     }
 
-    fn collect_template_files_recursive(
-        &self,
-        template_root: &Path,
-        current_dir: &Path,
-        files: &mut Vec<(PathBuf, PathBuf)>,
-    ) -> OxgenResult<()> {
-        for entry in fs::read_dir(current_dir)? {
-            let entry = entry?;
-            let path = entry.path();
-
-            if path.is_dir() {
-                self.collect_template_files_recursive(template_root, &path, files)?;
-                continue;
+    fn collect_template_files_recursive(dir: &Dir<'_>, files: &mut Vec<PathBuf>) {
+        for entry in dir.entries() {
+            match entry {
+                DirEntry::Dir(child_dir) => {
+                    Self::collect_template_files_recursive(child_dir, files);
+                }
+                DirEntry::File(file) => {
+                    files.push(file.path().to_path_buf());
+                }
             }
-
-            if !path.is_file() {
-                continue;
-            }
-
-            let relative_path = path
-                .strip_prefix(template_root)
-                .map_err(|_| OxgenError::InvalidTemplatePath(path.display().to_string()))?
-                .to_path_buf();
-
-            let output_path = self.output_path_from_template_path(&relative_path);
-
-            files.push((path, output_path));
         }
-
-        Ok(())
     }
 
     fn output_path_from_template_path(&self, template_path: &Path) -> PathBuf {
@@ -116,14 +100,17 @@ impl NewProjectGenerator {
             .replace("__CRATE_NAME__", &self.crate_name())
     }
 
-    fn write_template_file(
-        &self,
-        project_path: &Path,
-        template_path: &Path,
-        output_path: &Path,
-    ) -> OxgenResult<()> {
-        let content = fs::read_to_string(template_path)?;
-        let rendered_content = self.render_template(&content);
+    fn write_template_file(&self, project_path: &Path, template_path: &Path) -> OxgenResult<()> {
+        let file = PROJECT_TEMPLATES
+            .get_file(template_path)
+            .ok_or_else(|| OxgenError::InvalidTemplatePath(template_path.display().to_string()))?;
+
+        let content = file
+            .contents_utf8()
+            .ok_or_else(|| OxgenError::InvalidTemplatePath(template_path.display().to_string()))?;
+
+        let rendered_content = self.render_template(content);
+        let output_path = self.output_path_from_template_path(template_path);
         let final_output_path = project_path.join(output_path);
 
         if let Some(parent) = final_output_path.parent() {
@@ -139,8 +126,8 @@ impl NewProjectGenerator {
         println!("dry run: project `{}` would be created", self.name);
         println!();
 
-        for (_, output_path) in self.collect_template_files()? {
-            println!("create {}", project_path.join(output_path).display());
+        for template_path in self.collect_template_files()? {
+            println!("create {}", project_path.join(template_path).display());
         }
 
         Ok(())
@@ -166,14 +153,9 @@ impl Generator for NewProjectGenerator {
 
         if project_path.exists() {
             if !self.force {
-                let dotenv_path = project_path.join(".env.example");
-                let toml_path = project_path.join("Cargo.toml");
-                let src_path = project_path.join("src/");
-                if dotenv_path.exists() || toml_path.exists() || src_path.exists() {
-                    return Err(OxgenError::ProjectAlreadyExists(
-                        project_path.display().to_string(),
-                    ));
-                }
+                return Err(OxgenError::ProjectAlreadyExists(
+                    project_path.display().to_string(),
+                ));
             }
 
             fs::remove_dir_all(&project_path)?;
@@ -181,8 +163,8 @@ impl Generator for NewProjectGenerator {
 
         fs::create_dir_all(&project_path)?;
 
-        for (template_path, output_path) in self.collect_template_files()? {
-            self.write_template_file(&project_path, &template_path, &output_path)?;
+        for template_path in self.collect_template_files()? {
+            self.write_template_file(&project_path, &template_path)?;
         }
 
         println!("created project `{}`", self.name);

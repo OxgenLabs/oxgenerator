@@ -37,7 +37,10 @@ fn validate_name(input: &str) -> OxgenResult<()> {
         return Err(OxgenError::InvalidName(input.to_string()));
     }
 
-    if input.chars().any(|c| !(c.is_ascii_alphanumeric() || c == '_' || c == '-')) {
+    if input
+        .chars()
+        .any(|c| !(c.is_ascii_alphanumeric() || c == '_' || c == '-'))
+    {
         return Err(OxgenError::InvalidName(input.to_string()));
     }
 

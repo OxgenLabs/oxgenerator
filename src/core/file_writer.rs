@@ -18,9 +18,7 @@ impl FileWriter {
         let path = path.as_ref();
 
         if path.exists() && !self.force {
-            return Err(OxgenError::FileAlreadyExists(
-                path.display().to_string(),
-            ));
+            return Err(OxgenError::FileAlreadyExists(path.display().to_string()));
         }
 
         if self.dry_run {

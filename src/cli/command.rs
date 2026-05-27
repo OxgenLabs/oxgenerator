@@ -1,11 +1,8 @@
 use crate::core::generator::Generator;
 use crate::core::result::OxgenResult;
 use crate::generators::{
-    controller::ControllerGenerator,
-    model::ModelGenerator,
-    new_project::NewProjectGenerator,
-    resource::ResourceGenerator,
-    service::ServiceGenerator,
+    controller::ControllerGenerator, model::ModelGenerator, new_project::NewProjectGenerator,
+    resource::ResourceGenerator, service::ServiceGenerator,
 };
 
 #[derive(Debug)]
