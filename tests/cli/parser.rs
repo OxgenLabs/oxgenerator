@@ -53,11 +53,7 @@ fn parser_parses_version_long_flag() {
 
 #[test]
 fn parser_parses_new_command() {
-    let command = parse_args(vec![
-        "new".to_string(),
-        "test-api".to_string(),
-    ])
-    .unwrap();
+    let command = parse_args(vec!["new".to_string(), "test-api".to_string()]).unwrap();
 
     assert_eq!(
         command,
@@ -270,12 +266,7 @@ fn parser_parses_generate_service_command() {
 
 #[test]
 fn parser_parses_generate_service_alias_command() {
-    let command = parse_args(vec![
-        "g".to_string(),
-        "svc".to_string(),
-        "user".to_string(),
-    ])
-    .unwrap();
+    let command = parse_args(vec!["g".to_string(), "svc".to_string(), "user".to_string()]).unwrap();
 
     assert_eq!(
         command,
@@ -319,10 +310,7 @@ fn parser_returns_error_when_generate_has_no_generator() {
 
 #[test]
 fn parser_returns_error_when_generate_has_no_name() {
-    let result = parse_args(vec![
-        "generate".to_string(),
-        "resource".to_string(),
-    ]);
+    let result = parse_args(vec!["generate".to_string(), "resource".to_string()]);
 
     assert!(matches!(result, Err(OxgenError::MissingArgument(_))));
 }

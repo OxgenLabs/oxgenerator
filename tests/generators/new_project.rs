@@ -1,9 +1,9 @@
+use crate::common::collect_files;
 use assert_cmd::Command;
 use predicates::prelude::*;
 use std::fs;
-use tempfile::tempdir;
 use std::process::Command as StdCommand;
-use crate::common::collect_files;
+use tempfile::tempdir;
 
 fn run_cargo_command(project_path: &std::path::Path, args: &[&str]) {
     let output = StdCommand::new("cargo")
