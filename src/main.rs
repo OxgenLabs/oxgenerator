@@ -1,10 +1,5 @@
-mod cli;
-mod core;
-mod generators;
-mod utils;
-
-use crate::cli::parser::parse_args;
-use crate::core::result::OxgenResult;
+use oxgen::cli::parser::parse_args;
+use oxgen::core::result::OxgenResult;
 
 fn main() {
     if let Err(error) = run() {

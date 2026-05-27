@@ -16,6 +16,7 @@ pub enum OxgenError {
     InvalidProjectName(String),
     InvalidTemplatePath(String),
     TemplateDirectoryNotFound(String),
+    CargoFmtFailed(String),
 }
 
 impl fmt::Display for OxgenError {
@@ -60,6 +61,9 @@ impl fmt::Display for OxgenError {
             }
             OxgenError::TemplateDirectoryNotFound(path) => {
                 write!(f, "Template directory not found: {}", path)
+            }
+            OxgenError::CargoFmtFailed(path) => {
+                write!(f, "cargo fmt failed: {}", path)
             }
             OxgenError::Io(message) => {
                 write!(f, "I/O error: {}", message)

@@ -5,7 +5,7 @@ use crate::generators::{
     resource::ResourceGenerator, service::ServiceGenerator,
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Command {
     New {
         name: String,
@@ -19,7 +19,7 @@ pub enum Command {
     Version,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum GeneratorCommand {
     Resource {
         name: String,
