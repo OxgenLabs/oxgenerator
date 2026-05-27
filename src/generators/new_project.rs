@@ -132,6 +132,21 @@ impl NewProjectGenerator {
 
         Ok(())
     }
+
+    fn format_generated_project(&self, project_path: &Path) -> OxgenResult<()> {
+        let output = std::process::Command::new("cargo")
+            .arg("fmt")
+            .current_dir(project_path)
+            .output()?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+
+            return Err(OxgenError::CargoFmtFailed(stderr.to_string()));
+        }
+
+        Ok(())
+    }
 }
 
 impl Generator for NewProjectGenerator {
@@ -166,7 +181,7 @@ impl Generator for NewProjectGenerator {
         for template_path in self.collect_template_files()? {
             self.write_template_file(&project_path, &template_path)?;
         }
-
+        self.format_generated_project(&project_path)?;
         println!("created project `{}`", self.name);
         println!();
         println!("next steps:");
