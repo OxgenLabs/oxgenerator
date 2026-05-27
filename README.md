@@ -197,12 +197,10 @@ The project should stay lightweight. The generator should focus on commands that
 - [ ] Improve the CLI help output with clear usage examples for every command.
 - [ ] Generate a complete Rust project structure from embedded templates.
 - [ ] Automatically initialize a Git repository when creating a new project.
-- [ ] Add an option to skip Git initialization when creating a project.
 - [ ] Generate a clean `.gitignore` adapted to Rust projects.
 - [ ] Generate a default `README.md` inside newly created projects.
 - [ ] Generate a default `.env.example` file.
 - [ ] Generate a default `Cargo.toml` with the selected project name and crate name.
-- [ ] Support project names using kebab-case while generating valid Rust crate names.
 - [ ] Improve `--force` behavior with safer and clearer overwrite messages.
 - [ ] Improve `--dry-run` output so users can preview every generated file.
 - [ ] Add better error messages for invalid project names, missing arguments and existing folders.
@@ -217,16 +215,14 @@ The project should stay lightweight. The generator should focus on commands that
 - [ ] Add support for aliases such as `g`, `res`, `ctrl` and `svc`.
 - [ ] Add a proper template rendering layer instead of simple string replacement.
 - [ ] Support configurable templates in the future.
-- [ ] Support built-in project presets such as basic CLI, REST API and modular backend.
-- [ ] Add dependency management helpers for generated projects.
 - [ ] Investigate whether project dependencies should use fixed versions or the latest compatible versions.
-- [ ] Add tests for the CLI parser.
+- [x] Add tests for the CLI parser.
 - [ ] Add tests for project name validation.
 - [ ] Add tests for template rendering.
-- [ ] Add tests for the `new` generator.
+- [x] Add tests for the `new` generator.
 - [ ] Add tests for resource, controller, service, model and repository generators.
 - [ ] Add snapshot tests for generated project structures.
-- [ ] Add CI checks for formatting, linting and tests.
+- [x] Add CI checks for formatting, linting and tests.
 - [ ] Prepare release binaries through GitHub Releases.
 - [ ] Add installation instructions for Linux, macOS and Windows.
 - [ ] Add documentation for the generated project architecture.
