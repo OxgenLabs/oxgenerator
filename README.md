@@ -194,7 +194,7 @@ The project should stay lightweight. The generator should focus on commands that
 `oxgen` is still in early development. The roadmap below tracks the features planned for the CLI and the generated Rust projects.
 
 - [x] Finalize the `new` command as the main project creation entry point.
-- [ ] Improve the CLI help output with clear usage examples for every command.
+- [x] Improve the CLI help output.
 - [ ] Generate a complete Rust project structure from embedded templates.
 - [ ] Automatically initialize a Git repository when creating a new project.
 - [ ] Generate a clean `.gitignore` adapted to Rust projects.
