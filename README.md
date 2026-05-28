@@ -228,7 +228,7 @@ The project should stay lightweight. The generator should focus on commands that
 - [ ] Add documentation for the generated project architecture.
 - [ ] Add documentation explaining each generated layer and its responsibility.
 - [ ] Add examples showing how to create and extend a generated project.
-- [ ] Publish versioned releases based on `Cargo.toml`.
+- [x] Publish versioned releases based on `Cargo.toml`.
 
 ## Development
 
