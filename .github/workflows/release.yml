@@ -1,0 +1,157 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows:
+      - Test
+    types:
+      - completed
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive_ext: tar.gz
+            binary_ext: ""
+
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive_ext: zip
+            binary_ext: ".exe"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache cargo registry and build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Read package metadata
+        id: metadata
+        shell: bash
+        run: |
+          NAME="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].name')"
+          VERSION="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')"
+          TAG="v${VERSION}"
+
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Build release binary
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Prepare Linux archive
+        if: matrix.archive_ext == 'tar.gz'
+        shell: bash
+        run: |
+          mkdir -p dist
+
+          BIN_NAME="${{ steps.metadata.outputs.name }}"
+          TARGET="${{ matrix.target }}"
+          ARCHIVE_NAME="${BIN_NAME}-${TARGET}.tar.gz"
+
+          cp "target/${TARGET}/release/${BIN_NAME}" "dist/${BIN_NAME}"
+
+          tar -czf "dist/${ARCHIVE_NAME}" -C dist "${BIN_NAME}"
+
+          SHA256="$(sha256sum "dist/${ARCHIVE_NAME}" | awk '{ print $1 }')"
+          echo "${SHA256}  ${ARCHIVE_NAME}" > "dist/${ARCHIVE_NAME}.sha256"
+
+      - name: Prepare Windows archive
+        if: matrix.archive_ext == 'zip'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+
+          $binName = "${{ steps.metadata.outputs.name }}"
+          $target = "${{ matrix.target }}"
+          $archiveName = "$binName-$target.zip"
+
+          Copy-Item "target/$target/release/$binName.exe" "dist/$binName.exe"
+
+          Compress-Archive -Path "dist/$binName.exe" -DestinationPath "dist/$archiveName" -Force
+
+          $hash = Get-FileHash "dist/$archiveName" -Algorithm SHA256
+          "$($hash.Hash.ToLower())  $archiveName" | Out-File -FilePath "dist/$archiveName.sha256" -Encoding ascii
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: dist/*
+
+  release:
+    name: Publish GitHub release
+    runs-on: ubuntu-latest
+    needs: build
+
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'push'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Read package metadata
+        id: metadata
+        run: |
+          NAME="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].name')"
+          VERSION="$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[0].version')"
+          TAG="v${VERSION}"
+
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: release-*
+          merge-multiple: true
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.metadata.outputs.tag }}"
+          VERSION="${{ steps.metadata.outputs.version }}"
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists."
+            exit 0
+          fi
+
+          gh release create "$TAG" \
+            dist/* \
+            --title "v${VERSION}" \
+            --notes "Release v${VERSION}"
