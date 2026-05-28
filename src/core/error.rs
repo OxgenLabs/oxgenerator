@@ -20,6 +20,7 @@ pub enum OxgenError {
     ConfusingPackageName(String),
     RustKeyPackageName(String),
     RustBuiltInPackageName(String),
+    GitInitFailed(String),
 }
 
 impl fmt::Display for OxgenError {
@@ -87,6 +88,9 @@ impl fmt::Display for OxgenError {
             }
             OxgenError::Io(message) => {
                 write!(f, "I/O error: {}", message)
+            }
+            OxgenError::GitInitFailed(err) => {
+                write!(f, "git init failed: {}", err)
             }
         }
     }
