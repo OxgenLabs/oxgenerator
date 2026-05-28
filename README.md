@@ -200,7 +200,7 @@ The project should stay lightweight. The generator should focus on commands that
     - [x] generate a `.gitignore` adapted to Rust projects
     - [x] generate a `.env.example` file
     - [x] generate a `README.md` inside created projects
-    - [ ] automatically initialize a git repository when creating a new package
+    - [x] automatically initialize a git repository when creating a new package
     - [ ] add better error messages for invalid project names, missing arguments and existing folders
     - [x] Add tests for the `new` generator
     - [x] Add tests for project name validation
