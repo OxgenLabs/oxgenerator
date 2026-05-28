@@ -18,7 +18,7 @@ pub enum OxgenError {
     TemplateDirectoryNotFound(String),
     CargoFmtFailed(String),
     ConfusingPackageName(String),
-    RustKeyPackageName(String),
+    RustKeywordPackageName(String),
     RustBuiltInPackageName(String),
     GitInitFailed(String),
 }
@@ -76,7 +76,7 @@ impl fmt::Display for OxgenError {
                     name
                 )
             }
-            OxgenError::RustKeyPackageName(name) => {
+            OxgenError::RustKeywordPackageName(name) => {
                 write!(f, "Invalid package name `{}`: it is a Rust keyword", name)
             }
             OxgenError::RustBuiltInPackageName(name) => {

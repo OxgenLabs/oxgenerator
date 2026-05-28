@@ -68,7 +68,7 @@ impl NewProjectGenerator {
         }
 
         if RUST_KEYWORDS.contains(&self.name.as_str()) {
-            return Err(OxgenError::RustKeyPackageName(self.name.clone()));
+            return Err(OxgenError::RustKeywordPackageName(self.name.clone()));
         }
         Ok(())
     }
@@ -168,27 +168,29 @@ impl NewProjectGenerator {
         Ok(())
     }
 
-    fn init_git_repository(&self, project_path: &Path) -> OxgenResult<bool> {
+    fn init_git_repository(&self, project_path: &Path) -> OxgenResult<()> {
         let output = std::process::Command::new("git")
             .arg("init")
             .current_dir(project_path)
-            .output();
-
-        let output = match output {
-            Ok(output) => output,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-                return Ok(false);
-            }
-            Err(error) => return Err(error.into()),
-        };
+            .output()?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
 
-            return Err(OxgenError::GitInitFailed(stderr.to_string()));
+            return Err(OxgenError::GitInitFailed(stderr.trim().to_string()));
         }
 
-        Ok(true)
+        Ok(())
+    }
+
+    fn git_available(&self) -> bool {
+        if let Err(error) = std::process::Command::new("git").arg("--version").output()
+            && error.kind() == std::io::ErrorKind::NotFound
+        {
+            false
+        } else {
+            true
+        }
     }
 }
 
@@ -218,7 +220,10 @@ impl Generator for NewProjectGenerator {
             self.write_template_file(&project_path, &template_path)?;
         }
 
-        self.init_git_repository(&project_path)?;
+        if self.git_available() {
+            self.init_git_repository(&project_path)?;
+        }
+
         self.format_generated_project(&project_path)?;
 
         println!("created project `{}`", self.name);

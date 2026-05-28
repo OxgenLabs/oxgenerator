@@ -242,8 +242,44 @@ fn new_command_initializes_git_repository() {
         String::from_utf8_lossy(&output.stderr)
     );
 
-    assert_eq!(
-        String::from_utf8_lossy(&output.stdout).trim(),
-        "true"
-    );
+    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "true");
+}
+
+#[test]
+fn new_command_rejects_built_in_library_package_name() {
+    let temp_dir = tempdir().unwrap();
+
+    Command::cargo_bin("oxgen")
+        .unwrap()
+        .current_dir(temp_dir.path())
+        .args(["new", "test"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("built-in"));
+}
+
+#[test]
+fn new_command_rejects_confusing_package_name_std() {
+    let temp_dir = tempdir().unwrap();
+
+    Command::cargo_bin("oxgen")
+        .unwrap()
+        .current_dir(temp_dir.path())
+        .args(["new", "std"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("confusing"));
+}
+
+#[test]
+fn new_command_rejects_rust_keyword_package_name() {
+    let temp_dir = tempdir().unwrap();
+
+    Command::cargo_bin("oxgen")
+        .unwrap()
+        .current_dir(temp_dir.path())
+        .args(["new", "async"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("keyword"));
 }
