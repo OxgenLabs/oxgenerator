@@ -139,9 +139,11 @@ fn generate_model_uses_snake_case_for_module_and_pascal_case_for_struct() {
     let root_modules_mod = fs::read_to_string(project.join("src/modules/mod.rs")).unwrap();
 
     assert!(content.contains("pub struct UserProfile"));
-    assert!(root_modules_mod
-        .lines()
-        .any(|line| line.trim() == "pub mod user_profile;"));
+    assert!(
+        root_modules_mod
+            .lines()
+            .any(|line| line.trim() == "pub mod user_profile;")
+    );
 }
 
 #[test]

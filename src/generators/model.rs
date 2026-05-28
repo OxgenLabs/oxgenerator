@@ -99,7 +99,7 @@ impl ModelGenerator {
             {
                 println!("[UPDATE] {}", modules_mod_path.display());
                 println!(
-                    "[ADD] `{} to {}`",
+                    "[ADD] `{}` to {}",
                     module_declaration,
                     modules_mod_path.display()
                 );
@@ -156,7 +156,11 @@ impl ModelGenerator {
 
             if !content.lines().any(|line| line.trim() == model_declaration) {
                 println!("[UPDATE] {}", module_mod_path.display());
-                println!("[ADD] `{}`", model_declaration);
+                println!(
+                    "[ADD] `{}` to {}",
+                    model_declaration,
+                    module_mod_path.display()
+                );
             }
 
             return Ok(());
