@@ -1,6 +1,6 @@
 # oxgenerator
 
-A small, fast and opinionated Rust project generator for building clean API with a structured architecture from the first command.
+A small, fast and opinionated Rust project generator for building clean APIs with a structured architecture from the first command.
 
 `oxgen` is designed to remove the repetitive work of creating the same folders, files and naming conventions again and again. It gives you a consistent starting point for Rust projects and provides generators for common building blocks such as resources, controllers, services and models.
 
@@ -202,8 +202,6 @@ The project should stay lightweight. The generator should focus on commands that
     - [x] generate a `README.md` inside created projects
     - [x] automatically initialize a git repository when creating a new package
     - [x] add better error messages for invalid project names, missing arguments and existing folders
-    - [x] automatically initialize a git repository when creating a new package
-    - [x] add better error messages for invalid project names, missing arguments and existing folders
     - [x] Add tests for the `new` generator
     - [x] Add tests for project name validation
 - [x] Improve the CLI help output
@@ -224,7 +222,7 @@ The project should stay lightweight. The generator should focus on commands that
 - [x] Add tests for the CLI parser
 - [x] Add tests for template rendering
 - [ ] Add tests for resource, controller, service, model and repository generators
-- [] Add CI
+- [ ] Add CI
     - [ ] for formatting
     - [ ] for linting
     - [x] for test
