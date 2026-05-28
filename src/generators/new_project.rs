@@ -28,10 +28,6 @@ impl NewProjectGenerator {
         PathBuf::from(&self.name)
     }
 
-    fn template_root(&self) -> PathBuf {
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("templates/project")
-    }
-
     fn validate_project_name(&self) -> OxgenResult<()> {
         if self.name.trim().is_empty() {
             return Err(OxgenError::InvalidProjectName(self.name.clone()));
@@ -105,11 +101,6 @@ impl NewProjectGenerator {
             .get_file(template_path)
             .ok_or_else(|| OxgenError::InvalidTemplatePath(template_path.display().to_string()))?;
 
-        let content = file
-            .contents_utf8()
-            .ok_or_else(|| OxgenError::InvalidTemplatePath(template_path.display().to_string()))?;
-
-        let rendered_content = self.render_template(content);
         let output_path = self.output_path_from_template_path(template_path);
         let final_output_path = project_path.join(output_path);
 
@@ -117,7 +108,15 @@ impl NewProjectGenerator {
             fs::create_dir_all(parent)?;
         }
 
-        fs::write(final_output_path, rendered_content)?;
+        match file.contents_utf8() {
+            Some(content) => {
+                let rendered_content = self.render_template(content);
+                fs::write(final_output_path, rendered_content)?;
+            }
+            None => {
+                fs::write(final_output_path, file.contents())?;
+            }
+        }
 
         Ok(())
     }
@@ -127,7 +126,8 @@ impl NewProjectGenerator {
         println!();
 
         for template_path in self.collect_template_files()? {
-            println!("create {}", project_path.join(template_path).display());
+            let output_path = self.output_path_from_template_path(&template_path);
+            println!("create {}", project_path.join(output_path).display());
         }
 
         Ok(())
@@ -154,13 +154,6 @@ impl Generator for NewProjectGenerator {
         self.validate_project_name()?;
 
         let project_path = self.project_path();
-        let template_root = self.template_root();
-
-        if !template_root.exists() {
-            return Err(OxgenError::TemplateDirectoryNotFound(
-                template_root.display().to_string(),
-            ));
-        }
 
         if self.dry_run {
             return self.print_dry_run(&project_path);
@@ -181,7 +174,9 @@ impl Generator for NewProjectGenerator {
         for template_path in self.collect_template_files()? {
             self.write_template_file(&project_path, &template_path)?;
         }
+
         self.format_generated_project(&project_path)?;
+
         println!("created project `{}`", self.name);
         println!();
         println!("next steps:");
