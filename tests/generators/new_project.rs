@@ -283,3 +283,26 @@ fn new_command_rejects_rust_keyword_package_name() {
         .failure()
         .stderr(predicate::str::contains("keyword"));
 }
+
+#[test]
+fn new_command_creates_oxgen_config_file() {
+    let temp_dir = tempdir().unwrap();
+
+    Command::cargo_bin("oxgen")
+        .unwrap()
+        .current_dir(temp_dir.path())
+        .args(["new", "test-api"])
+        .assert()
+        .success();
+
+    let project = temp_dir.path().join("test-api");
+    let oxgen_dir = project.join(".oxgen");
+    let oxgen_config = oxgen_dir.join("config.toml");
+
+    assert!(oxgen_dir.is_dir());
+    assert!(oxgen_config.is_file());
+
+    let content = fs::read_to_string(oxgen_config).unwrap();
+
+    assert_eq!(content.trim(), r#"generator = "oxgen""#);
+}

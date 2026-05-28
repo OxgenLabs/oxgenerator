@@ -10,6 +10,7 @@ pub enum OxgenError {
     InvalidName(String),
     ProjectAlreadyExists(String),
     ProjectNotFound,
+    OxgenProjectNotFound,
     FileAlreadyExists(String),
     TemplateNotFound(String),
     Io(String),
@@ -78,6 +79,13 @@ impl fmt::Display for OxgenError {
                 write!(
                     f,
                     "no Rust project found in the current directory\n\nhelp: run this command inside a Rust project, or create a new one first with `oxgen new <package-name>`."
+                )
+            }
+
+            OxgenError::OxgenProjectNotFound => {
+                write!(
+                    f,
+                    "no oxgen project found in the current directory\n\nhelp: run this command at the root of a project created with `oxgen new <package-name>`.\n\nexpected: `.oxgen/config.toml`"
                 )
             }
 
