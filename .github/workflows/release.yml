@@ -192,13 +192,27 @@ jobs:
         run: |
           NAME="${{ steps.metadata.outputs.name }}"
           VERSION="${{ steps.metadata.outputs.version }}"
+          URL="https://crates.io/api/v1/crates/${NAME}/${VERSION}"
 
-          if curl -fsSL "https://crates.io/api/v1/crates/${NAME}/${VERSION}" >/dev/null 2>&1; then
+          STATUS="$(curl \
+            -sS \
+            -o /tmp/crate-version.json \
+            -w "%{http_code}" \
+            -H "User-Agent: OxgeneratorLabs/oxgenerator GitHub Actions release workflow" \
+            "$URL")"
+
+          echo "crates.io status: ${STATUS}"
+
+          if [ "$STATUS" = "200" ]; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
             echo "crate ${NAME} ${VERSION} already exists on crates.io"
-          else
+          elif [ "$STATUS" = "404" ]; then
             echo "exists=false" >> "$GITHUB_OUTPUT"
             echo "crate ${NAME} ${VERSION} does not exist on crates.io yet"
+          else
+            echo "Unexpected crates.io response: HTTP ${STATUS}"
+            cat /tmp/crate-version.json || true
+            exit 1
           fi
 
       - name: Verify package
