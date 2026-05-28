@@ -13,10 +13,13 @@ pub enum OxgenError {
     FileAlreadyExists(String),
     TemplateNotFound(String),
     Io(String),
-    InvalidProjectName(String),
+    InvalidPackageName(String),
     InvalidTemplatePath(String),
     TemplateDirectoryNotFound(String),
     CargoFmtFailed(String),
+    ConfusingPackageName(String),
+    RustKeyPackageName(String),
+    RustBuiltInPackageName(String),
 }
 
 impl fmt::Display for OxgenError {
@@ -48,22 +51,39 @@ impl fmt::Display for OxgenError {
                 write!(f, "No Rust project found in the current directory")
             }
             OxgenError::FileAlreadyExists(path) => {
-                write!(f, "File already exists: {}", path)
+                write!(f, "File already exists `{}`", path)
             }
             OxgenError::TemplateNotFound(path) => {
-                write!(f, "Template not found: {}", path)
+                write!(f, "Template not found `{}`", path)
             }
-            OxgenError::InvalidProjectName(name) => {
-                write!(f, "Invalid project name: {}", name)
+            OxgenError::InvalidPackageName(name) => {
+                write!(f, "Invalid package name `{}`", name)
             }
             OxgenError::InvalidTemplatePath(path) => {
-                write!(f, "Invalid template path: {}", path)
+                write!(f, "Invalid template path `{}`", path)
             }
             OxgenError::TemplateDirectoryNotFound(path) => {
-                write!(f, "Template directory not found: {}", path)
+                write!(f, "Template directory not found `{}`", path)
             }
             OxgenError::CargoFmtFailed(path) => {
-                write!(f, "cargo fmt failed: {}", path)
+                write!(f, "Cargo fmt failed `{}`", path)
+            }
+            OxgenError::ConfusingPackageName(name) => {
+                write!(
+                    f,
+                    "Invalid package name `{}` may be confused with the package with that name in Rust's standard library",
+                    name
+                )
+            }
+            OxgenError::RustKeyPackageName(name) => {
+                write!(f, "Invalid package name `{}`: it is a Rust keyword", name)
+            }
+            OxgenError::RustBuiltInPackageName(name) => {
+                write!(
+                    f,
+                    "Invalid package name `{}`: it conflicts with Rust's built-in {} library",
+                    name, name
+                )
             }
             OxgenError::Io(message) => {
                 write!(f, "I/O error: {}", message)
