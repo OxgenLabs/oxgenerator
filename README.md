@@ -193,7 +193,7 @@ The project should stay lightweight. The generator should focus on commands that
 
 `oxgen` is still in early development. The roadmap below tracks the features planned for the CLI and the generated Rust projects.
 
-- [ ] Create the `new` command to create a Rust package
+- [x] Create the `new` command to create a Rust package
     - [x] use .ox template file
     - [x] create `--dry-run` flag so users can preview every generated file
     - [x] create `--force` flag so users can force create the package
@@ -201,7 +201,7 @@ The project should stay lightweight. The generator should focus on commands that
     - [x] generate a `.env.example` file
     - [x] generate a `README.md` inside created projects
     - [ ] automatically initialize a git repository when creating a new package
-    - [ ] add better error messages for invalid project names, missing arguments and existing folders
+    - [x] add better error messages for invalid project names, missing arguments and existing folders
     - [x] Add tests for the `new` generator
     - [x] Add tests for project name validation
 - [x] Improve the CLI help output

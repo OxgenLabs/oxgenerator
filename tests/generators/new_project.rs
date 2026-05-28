@@ -116,7 +116,7 @@ fn new_command_fails_if_project_already_exists_without_force() {
         .args(["new", "test-api"])
         .assert()
         .failure()
-        .stderr(predicate::str::contains("Project already exists"));
+        .stderr(predicate::str::contains("project directory already exists"));
 }
 
 #[test]
@@ -163,7 +163,7 @@ fn new_command_rejects_invalid_project_name() {
         .args(["new", "my api"])
         .assert()
         .failure()
-        .stderr(predicate::str::contains("Invalid package name"));
+        .stderr(predicate::str::contains("invalid package name"));
 }
 
 #[test]
