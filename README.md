@@ -1,4 +1,4 @@
-# oxgen
+# oxgenerator
 
 A small, fast and opinionated Rust project generator for building clean backend-oriented applications with a structured architecture from the first command.
 
