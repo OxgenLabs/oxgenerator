@@ -116,7 +116,7 @@ fn new_command_fails_if_project_already_exists_without_force() {
         .args(["new", "test-api"])
         .assert()
         .failure()
-        .stderr(predicate::str::contains("Project already exists"));
+        .stderr(predicate::str::contains("project directory already exists"));
 }
 
 #[test]
@@ -163,7 +163,7 @@ fn new_command_rejects_invalid_project_name() {
         .args(["new", "my api"])
         .assert()
         .failure()
-        .stderr(predicate::str::contains("Invalid project name"));
+        .stderr(predicate::str::contains("invalid package name"));
 }
 
 #[test]
@@ -212,4 +212,74 @@ fn new_command_generates_project_that_passes_clippy() {
     let project = temp_dir.path().join("test-api");
 
     run_cargo_command(&project, &["clippy", "--", "-D", "warnings"]);
+}
+
+#[test]
+fn new_command_initializes_git_repository() {
+    let temp_dir = tempdir().unwrap();
+
+    Command::cargo_bin("oxgen")
+        .unwrap()
+        .current_dir(temp_dir.path())
+        .args(["new", "test-api"])
+        .assert()
+        .success();
+
+    let project = temp_dir.path().join("test-api");
+
+    assert!(project.join(".git").is_dir());
+
+    let output = StdCommand::new("git")
+        .args(["rev-parse", "--is-inside-work-tree"])
+        .current_dir(&project)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "expected generated project to be a git repository\n\nstdout:\n{}\n\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "true");
+}
+
+#[test]
+fn new_command_rejects_built_in_library_package_name() {
+    let temp_dir = tempdir().unwrap();
+
+    Command::cargo_bin("oxgen")
+        .unwrap()
+        .current_dir(temp_dir.path())
+        .args(["new", "test"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("built-in"));
+}
+
+#[test]
+fn new_command_rejects_confusing_package_name_std() {
+    let temp_dir = tempdir().unwrap();
+
+    Command::cargo_bin("oxgen")
+        .unwrap()
+        .current_dir(temp_dir.path())
+        .args(["new", "std"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("confusing"));
+}
+
+#[test]
+fn new_command_rejects_rust_keyword_package_name() {
+    let temp_dir = tempdir().unwrap();
+
+    Command::cargo_bin("oxgen")
+        .unwrap()
+        .current_dir(temp_dir.path())
+        .args(["new", "async"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("keyword"));
 }

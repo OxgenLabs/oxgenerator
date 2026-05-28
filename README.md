@@ -1,6 +1,6 @@
 # oxgenerator
 
-A small, fast and opinionated Rust project generator for building clean backend-oriented applications with a structured architecture from the first command.
+A small, fast and opinionated Rust project generator for building clean APIs with a structured architecture from the first command.
 
 `oxgen` is designed to remove the repetitive work of creating the same folders, files and naming conventions again and again. It gives you a consistent starting point for Rust projects and provides generators for common building blocks such as resources, controllers, services and models.
 
@@ -193,42 +193,44 @@ The project should stay lightweight. The generator should focus on commands that
 
 `oxgen` is still in early development. The roadmap below tracks the features planned for the CLI and the generated Rust projects.
 
-- [x] Finalize the `new` command as the main project creation entry point.
-- [x] Improve the CLI help output.
-- [ ] Generate a complete Rust project structure from embedded templates.
-- [ ] Automatically initialize a Git repository when creating a new project.
-- [ ] Generate a clean `.gitignore` adapted to Rust projects.
-- [ ] Generate a default `README.md` inside newly created projects.
-- [ ] Generate a default `.env.example` file.
-- [ ] Generate a default `Cargo.toml` with the selected project name and crate name.
-- [ ] Improve `--force` behavior with safer and clearer overwrite messages.
-- [ ] Improve `--dry-run` output so users can preview every generated file.
-- [ ] Add better error messages for invalid project names, missing arguments and existing folders.
-- [ ] Add support for generating a full resource module.
-- [ ] Add support for generating controllers.
-- [ ] Add support for generating services.
-- [ ] Add support for generating models.
-- [ ] Add support for generating repositories.
-- [ ] Add support for generating routes.
-- [ ] Add support for generating DTOs or payload structs.
-- [ ] Add support for generating error files per resource.
-- [ ] Add support for aliases such as `g`, `res`, `ctrl` and `svc`.
-- [ ] Add a proper template rendering layer instead of simple string replacement.
-- [ ] Support configurable templates in the future.
-- [ ] Investigate whether project dependencies should use fixed versions or the latest compatible versions.
-- [x] Add tests for the CLI parser.
-- [ ] Add tests for project name validation.
-- [ ] Add tests for template rendering.
-- [x] Add tests for the `new` generator.
-- [ ] Add tests for resource, controller, service, model and repository generators.
-- [ ] Add snapshot tests for generated project structures.
-- [x] Add CI checks for formatting, linting and tests.
-- [ ] Prepare release binaries through GitHub Releases.
-- [ ] Add installation instructions for Linux, macOS and Windows.
-- [ ] Add documentation for the generated project architecture.
-- [ ] Add documentation explaining each generated layer and its responsibility.
-- [ ] Add examples showing how to create and extend a generated project.
-- [x] Publish versioned releases based on `Cargo.toml`.
+- [x] Create the `new` command to create a Rust package
+    - [x] use .ox template file
+    - [x] create `--dry-run` flag so users can preview every generated file
+    - [x] create `--force` flag so users can force create the package
+    - [x] generate a `.gitignore` adapted to Rust projects
+    - [x] generate a `.env.example` file
+    - [x] generate a `README.md` inside created projects
+    - [x] automatically initialize a git repository when creating a new package
+    - [x] add better error messages for invalid project names, missing arguments and existing folders
+    - [x] Add tests for the `new` generator
+    - [x] Add tests for project name validation
+- [x] Improve the CLI help output
+- [ ] Create the `generate` command
+    - [ ]  for generating a full resource module
+    - [ ]  for generating controllers
+    - [ ]  for generating services
+    - [ ]  for generating models
+    - [ ]  for generating repositories
+    - [ ]  for generating routes
+    - [ ]  for generating DTOs or payload structs
+    - [ ]  for generating error files per resource
+    - [ ]  create aliases such as `g`, `res`, `ctrl` and `svc`
+    - [x] create `--dry-run` flag so users can preview generated file
+    - [x] create `--force` flag so users can force create the file
+- [ ] Support databases
+- [ ] Investigate whether project dependencies should use fixed versions or the latest compatible versions
+- [x] Add tests for the CLI parser
+- [x] Add tests for template rendering
+- [ ] Add tests for resource, controller, service, model and repository generators
+- [ ] Add CI
+    - [ ] for formatting
+    - [ ] for linting
+    - [x] for test
+    - [x] for release
+- [ ] Add installation instructions for Linux, macOS and Windows
+- [ ] Add documentation for the generated project architecture
+- [ ] Add documentation explaining each generated layer and its responsibility
+- [ ] Add examples showing how to create and extend a generated project
 
 ## Development
 
