@@ -31,7 +31,6 @@ impl FileWriter {
         }
 
         fs::write(path, content)?;
-        println!("[CREATE] {}", path.display());
 
         Ok(())
     }
@@ -45,7 +44,6 @@ impl FileWriter {
         }
 
         fs::create_dir_all(path)?;
-        println!("[CREATE] {}", path.display());
 
         Ok(())
     }
