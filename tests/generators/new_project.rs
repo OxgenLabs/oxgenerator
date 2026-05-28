@@ -213,3 +213,34 @@ fn new_command_generates_project_that_passes_clippy() {
 
     run_cargo_command(&project, &["clippy", "--", "-D", "warnings"]);
 }
+
+#[test]
+fn new_command_initializes_git_repository() {
+    let temp_dir = tempdir().unwrap();
+
+    Command::cargo_bin("oxgen")
+        .unwrap()
+        .current_dir(temp_dir.path())
+        .args(["new", "test-api"])
+        .assert()
+        .success();
+
+    let project = temp_dir.path().join("test-api");
+
+    assert!(project.join(".git").is_dir());
+
+    let output = StdCommand::new("git")
+        .args(["rev-parse", "--is-inside-work-tree"])
+        .current_dir(&project)
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "expected generated project to be a git repository\n\nstdout:\n{}\n\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "true");
+}

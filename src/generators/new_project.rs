@@ -167,6 +167,29 @@ impl NewProjectGenerator {
 
         Ok(())
     }
+
+    fn init_git_repository(&self, project_path: &Path) -> OxgenResult<bool> {
+        let output = std::process::Command::new("git")
+            .arg("init")
+            .current_dir(project_path)
+            .output();
+
+        let output = match output {
+            Ok(output) => output,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(false);
+            }
+            Err(error) => return Err(error.into()),
+        };
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+
+            return Err(OxgenError::GitInitFailed(stderr.to_string()));
+        }
+
+        Ok(true)
+    }
 }
 
 impl Generator for NewProjectGenerator {
@@ -195,6 +218,7 @@ impl Generator for NewProjectGenerator {
             self.write_template_file(&project_path, &template_path)?;
         }
 
+        self.init_git_repository(&project_path)?;
         self.format_generated_project(&project_path)?;
 
         println!("created project `{}`", self.name);

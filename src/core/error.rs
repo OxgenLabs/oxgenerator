@@ -20,6 +20,7 @@ pub enum OxgenError {
     ConfusingPackageName(String),
     RustKeyPackageName(String),
     RustBuiltInPackageName(String),
+    GitInitFailed(String),
 }
 
 impl fmt::Display for OxgenError {
@@ -157,6 +158,13 @@ impl fmt::Display for OxgenError {
                     f,
                     "I/O operation failed\n\nhelp: check file permissions, paths, and whether the target directory exists.\n\ndetails: {}",
                     message
+                )
+            }
+            OxgenError::GitInitFailed(err) => {
+                write!(
+                    f,
+                    "error: failed to initialize git repository\n\nhelp: make sure Git is installed and available in your PATH.\n\ntry: `git --version`\n\ndetails: {}",
+                    err
                 )
             }
         }
