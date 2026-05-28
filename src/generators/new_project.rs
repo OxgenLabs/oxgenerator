@@ -8,6 +8,15 @@ use crate::core::generator::Generator;
 use crate::core::result::OxgenResult;
 
 static PROJECT_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/project");
+const BUILT_IN_LIBRARY: &[&str] = &["test"];
+const CONFUSING_PACKAGE_NAMES: &[&str] = &["std", "core", "alloc", "proc_macro"];
+const RUST_KEYWORDS: &[&str] = &[
+    "as", "async", "await", "break", "const", "continue", "crate", "dyn", "else", "enum", "extern",
+    "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub",
+    "ref", "return", "self", "Self", "static", "struct", "super", "trait", "true", "type",
+    "unsafe", "use", "where", "while", "abstract", "become", "box", "do", "final", "gen", "macro",
+    "override", "priv", "try", "typeof", "unsized", "virtual", "yield",
+];
 
 pub struct NewProjectGenerator {
     name: String,
@@ -28,17 +37,17 @@ impl NewProjectGenerator {
         PathBuf::from(&self.name)
     }
 
-    fn validate_project_name(&self) -> OxgenResult<()> {
+    fn validate_package_name(&self) -> OxgenResult<()> {
         if self.name.trim().is_empty() {
-            return Err(OxgenError::InvalidProjectName(self.name.clone()));
+            return Err(OxgenError::InvalidPackageName(self.name.clone()));
         }
 
         let Some(first_char) = self.name.chars().next() else {
-            return Err(OxgenError::InvalidProjectName(self.name.clone()));
+            return Err(OxgenError::InvalidPackageName(self.name.clone()));
         };
 
         if !first_char.is_ascii_alphabetic() {
-            return Err(OxgenError::InvalidProjectName(self.name.clone()));
+            return Err(OxgenError::InvalidPackageName(self.name.clone()));
         }
 
         let is_valid = self
@@ -47,9 +56,20 @@ impl NewProjectGenerator {
             .all(|char| char.is_ascii_alphanumeric() || char == '-' || char == '_');
 
         if !is_valid {
-            return Err(OxgenError::InvalidProjectName(self.name.clone()));
+            return Err(OxgenError::InvalidPackageName(self.name.clone()));
         }
 
+        if BUILT_IN_LIBRARY.contains(&self.name.as_str()) {
+            return Err(OxgenError::RustBuiltInPackageName(self.name.clone()));
+        }
+
+        if CONFUSING_PACKAGE_NAMES.contains(&self.name.as_str()) {
+            return Err(OxgenError::ConfusingPackageName(self.name.clone()));
+        }
+
+        if RUST_KEYWORDS.contains(&self.name.as_str()) {
+            return Err(OxgenError::RustKeyPackageName(self.name.clone()));
+        }
         Ok(())
     }
 
@@ -151,7 +171,7 @@ impl NewProjectGenerator {
 
 impl Generator for NewProjectGenerator {
     fn generate(&self) -> OxgenResult<()> {
-        self.validate_project_name()?;
+        self.validate_package_name()?;
 
         let project_path = self.project_path();
 
