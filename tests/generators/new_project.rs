@@ -163,7 +163,7 @@ fn new_command_rejects_invalid_project_name() {
         .args(["new", "my api"])
         .assert()
         .failure()
-        .stderr(predicate::str::contains("Invalid project name"));
+        .stderr(predicate::str::contains("Invalid package name"));
 }
 
 #[test]
