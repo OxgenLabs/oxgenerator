@@ -1,5 +1,6 @@
 use crate::core::generator::Generator;
 use crate::core::result::OxgenResult;
+use crate::generators::dto::DtoGenerator;
 use crate::generators::{
     controller::ControllerGenerator, model::ModelGenerator, new_project::NewProjectGenerator,
     resource::ResourceGenerator, service::ServiceGenerator,
@@ -41,6 +42,11 @@ pub enum GeneratorCommand {
         force: bool,
         dry_run: bool,
     },
+    Dto {
+        name: String,
+        force: bool,
+        dry_run: bool,
+    },
 }
 
 impl Command {
@@ -76,6 +82,11 @@ impl Command {
                     force,
                     dry_run,
                 } => ModelGenerator::new(name, force, dry_run).generate(),
+                GeneratorCommand::Dto {
+                    name,
+                    force,
+                    dry_run,
+                } => DtoGenerator::new(name, force, dry_run).generate(),
             },
 
             Command::Help => {

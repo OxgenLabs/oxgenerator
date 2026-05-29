@@ -73,6 +73,11 @@ fn parse_generate_command(args: &[String]) -> OxgenResult<Command> {
             force,
             dry_run,
         },
+        "dto" => GeneratorCommand::Dto {
+            name,
+            force,
+            dry_run,
+        },
         unknown => return Err(OxgenError::UnknownGenerator(unknown.to_string())),
     };
 
