@@ -274,7 +274,7 @@ The project should stay lightweight. The generator should focus on commands that
 - [ ] Complete the `generate` command.
     - [ ] Generate full resource modules.
     - [ ] Generate controllers.
-    - [ ] Generate services.
+    - [x] Generate services.
     - [x] Generate models.
     - [ ] Generate routes.
     - [x] Generate DTOs or payload structs.
