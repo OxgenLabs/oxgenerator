@@ -58,7 +58,6 @@ It is designed for developers who want:
 - Generate controllers.
 - Generate services.
 - Generate models.
-- Generate repositories.
 - Generate routes.
 - Generate DTOs or payload structs.
 - Generate error files per resource.
@@ -190,6 +189,7 @@ oxgen generate resource user
 oxgen generate controller user
 oxgen generate service user
 oxgen generate model user
+oxgen generate dto user
 ```
 
 ### Options
@@ -275,10 +275,9 @@ The project should stay lightweight. The generator should focus on commands that
     - [ ] Generate full resource modules.
     - [ ] Generate controllers.
     - [ ] Generate services.
-    - [ ] Generate models.
-    - [ ] Generate repositories.
+    - [x] Generate models.
     - [ ] Generate routes.
-    - [ ] Generate DTOs or payload structs.
+    - [x] Generate DTOs or payload structs.
     - [ ] Generate error files per resource.
     - [ ] Add aliases such as `g`, `res`, `ctrl` and `svc`.
     - [ ] Add tests for resource, controller, service, model and repository generators.
