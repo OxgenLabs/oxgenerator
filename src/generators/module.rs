@@ -1,13 +1,13 @@
 use crate::core::generator::Generator;
 use crate::core::result::OxgenResult;
 
-pub struct ResourceGenerator {
+pub struct ModuleGenerator {
     name: String,
     force: bool,
     dry_run: bool,
 }
 
-impl ResourceGenerator {
+impl ModuleGenerator {
     pub fn new(name: String, force: bool, dry_run: bool) -> Self {
         Self {
             name,
@@ -17,7 +17,7 @@ impl ResourceGenerator {
     }
 }
 
-impl Generator for ResourceGenerator {
+impl Generator for ModuleGenerator {
     fn generate(&self) -> OxgenResult<()> {
         Ok(())
     }

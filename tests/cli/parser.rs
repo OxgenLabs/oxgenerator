@@ -161,7 +161,7 @@ fn parser_returns_error_for_unknown_command() {
 fn parser_parses_generate_resource_command() {
     let command = parse_args(vec![
         "generate".to_string(),
-        "resource".to_string(),
+        "module".to_string(),
         "user".to_string(),
     ])
     .unwrap();
@@ -169,7 +169,7 @@ fn parser_parses_generate_resource_command() {
     assert_eq!(
         command,
         Command::Generate {
-            generator: GeneratorCommand::Resource {
+            generator: GeneratorCommand::Module {
                 name: "user".to_string(),
                 force: false,
                 dry_run: false,
@@ -182,7 +182,7 @@ fn parser_parses_generate_resource_command() {
 fn parser_parses_g_resource_alias_command() {
     let command = parse_args(vec![
         "g".to_string(),
-        "res".to_string(),
+        "mod".to_string(),
         "user".to_string(),
         "--force".to_string(),
         "--dry-run".to_string(),
@@ -192,7 +192,7 @@ fn parser_parses_g_resource_alias_command() {
     assert_eq!(
         command,
         Command::Generate {
-            generator: GeneratorCommand::Resource {
+            generator: GeneratorCommand::Module {
                 name: "user".to_string(),
                 force: true,
                 dry_run: true,

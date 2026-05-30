@@ -53,7 +53,7 @@ fn parse_generate_command(args: &[String]) -> OxgenResult<Command> {
     let dry_run = has_flag(args, "--dry-run");
 
     let generator = match generator {
-        "resource" | "res" => GeneratorCommand::Resource {
+        "module" | "mod" => GeneratorCommand::Module {
             name,
             force,
             dry_run,
@@ -74,6 +74,11 @@ fn parse_generate_command(args: &[String]) -> OxgenResult<Command> {
             dry_run,
         },
         "dto" => GeneratorCommand::Dto {
+            name,
+            force,
+            dry_run,
+        },
+        "route" => GeneratorCommand::Route {
             name,
             force,
             dry_run,

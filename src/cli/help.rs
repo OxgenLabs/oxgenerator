@@ -13,11 +13,11 @@ COMMANDS:
     version                 Print the Oxgen version
 
 GENERATOR TYPES:
+    module                  Generate a complete module structure
     controller              Generate a controller file
     service                 Generate a service file
     model                   Generate a model file
     dto                     Generate a dto file
-    module                  Generate a complete module structure
     route                   Generate a route file
 
 OPTIONS:
