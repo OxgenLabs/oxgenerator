@@ -5,4 +5,5 @@ mod generators {
     mod model;
     mod new_project;
     mod service;
+    mod controller;
 }
