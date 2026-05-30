@@ -1,9 +1,10 @@
 use crate::core::generator::Generator;
 use crate::core::result::OxgenResult;
 use crate::generators::dto::DtoGenerator;
+use crate::generators::route::RouteGenerator;
 use crate::generators::{
-    controller::ControllerGenerator, model::ModelGenerator, new_project::NewProjectGenerator,
-    resource::ResourceGenerator, service::ServiceGenerator,
+    controller::ControllerGenerator, model::ModelGenerator, module::ModuleGenerator,
+    new_project::NewProjectGenerator, service::ServiceGenerator,
 };
 
 #[derive(Debug, PartialEq)]
@@ -22,7 +23,7 @@ pub enum Command {
 
 #[derive(Debug, PartialEq)]
 pub enum GeneratorCommand {
-    Resource {
+    Module {
         name: String,
         force: bool,
         dry_run: bool,
@@ -47,6 +48,11 @@ pub enum GeneratorCommand {
         force: bool,
         dry_run: bool,
     },
+    Route {
+        name: String,
+        force: bool,
+        dry_run: bool,
+    },
 }
 
 impl Command {
@@ -59,11 +65,11 @@ impl Command {
             } => NewProjectGenerator::new(name, force, dry_run).generate(),
 
             Command::Generate { generator } => match generator {
-                GeneratorCommand::Resource {
+                GeneratorCommand::Module {
                     name,
                     force,
                     dry_run,
-                } => ResourceGenerator::new(name, force, dry_run).generate(),
+                } => ModuleGenerator::new(name, force, dry_run).generate(),
 
                 GeneratorCommand::Controller {
                     name,
@@ -87,6 +93,11 @@ impl Command {
                     force,
                     dry_run,
                 } => DtoGenerator::new(name, force, dry_run).generate(),
+                GeneratorCommand::Route {
+                    name,
+                    force,
+                    dry_run,
+                } => RouteGenerator::new(name, force, dry_run).generate(),
             },
 
             Command::Help => {

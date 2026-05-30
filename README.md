@@ -185,7 +185,7 @@ oxgen generate <generator> <name>
 ### Planned generators
 
 ```bash
-oxgen generate resource user
+oxgen generate module user
 oxgen generate controller user
 oxgen generate service user
 oxgen generate model user
@@ -273,14 +273,13 @@ The project should stay lightweight. The generator should focus on commands that
     - [x] Add tests for template rendering.
 - [ ] Complete the `generate` command.
     - [ ] Generate full resource modules.
-    - [ ] Generate controllers.
+    - [x] Generate controllers.
     - [x] Generate services.
     - [x] Generate models.
-    - [ ] Generate routes.
+    - [x] Generate routes.
     - [x] Generate DTOs or payload structs.
-    - [ ] Generate error files per resource.
     - [ ] Add aliases such as `g`, `res`, `ctrl` and `svc`.
-    - [ ] Add tests for resource, controller, service, model and repository generators.
+    - [ ] Add tests for module, controller, service, model, routes and dto generators.
 - [ ] Add CI for formatting.
 - [ ] Add CI for linting.
 - [x] Add CI for tests.
