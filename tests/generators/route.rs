@@ -205,7 +205,7 @@ fn route_generator_returns_file_already_exists_without_touching_main_or_routes_m
 
     assert!(matches!(
         result,
-        Err(OxgenError::FileAlreadyExists(path)) if path == "src/routes/user.rs"
+        Err(OxgenError::FileAlreadyExists(path)) if Path::new(&path) == Path::new("src/routes/user.rs")
     ));
 
     let main_after = fs::read_to_string(temp_dir.path().join("src/main.rs")).unwrap();

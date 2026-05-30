@@ -184,15 +184,22 @@ impl RouteGenerator {
                 ));
             }
 
-            if let Some(routes_block_start) = content.find("    routes::{") {
-                if let Some(relative_routes_block_end) =
-                    content[routes_block_start..].find("    },")
-                {
-                    let routes_block_end = routes_block_start + relative_routes_block_end;
-                    let mut updated = content.to_string();
-                    updated.insert_str(routes_block_end, &nested_route_import);
-                    return Ok(updated);
-                }
+            let routes_block_position =
+                content
+                    .find("    routes::{")
+                    .and_then(|routes_block_start| {
+                        content[routes_block_start..].find("    },").map(
+                            |relative_routes_block_end| {
+                                (routes_block_start, relative_routes_block_end)
+                            },
+                        )
+                    });
+
+            if let Some((routes_block_start, relative_routes_block_end)) = routes_block_position {
+                let routes_block_end = routes_block_start + relative_routes_block_end;
+                let mut updated = content.to_string();
+                updated.insert_str(routes_block_end, &nested_route_import);
+                return Ok(updated);
             }
         }
 
