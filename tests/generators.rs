@@ -7,4 +7,5 @@ mod generators {
     mod new_project;
     mod route;
     mod service;
+    mod module;
 }

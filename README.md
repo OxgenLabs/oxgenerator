@@ -54,7 +54,7 @@ It is designed for developers who want:
 
 ### Planned
 
-- Generate resources.
+- Generate modules.
 - Generate controllers.
 - Generate services.
 - Generate models.
@@ -271,15 +271,15 @@ The project should stay lightweight. The generator should focus on commands that
     - [x] Add tests for project name validation.
     - [x] Add tests for the CLI parser.
     - [x] Add tests for template rendering.
-- [ ] Complete the `generate` command.
-    - [ ] Generate full resource modules.
+- [x] Complete the `generate` command.
+    - [x] Generate full modules.
     - [x] Generate controllers.
     - [x] Generate services.
     - [x] Generate models.
     - [x] Generate routes.
     - [x] Generate DTOs or payload structs.
-    - [ ] Add aliases such as `g`, `res`, `ctrl` and `svc`.
-    - [ ] Add tests for module, controller, service, model, routes and dto generators.
+    - [x] Add aliases such as `g`, `mod`, `ctrl` and `svc`.
+    - [x] Add tests for module, controller, service, model, routes and dto generators.
 - [ ] Add CI for formatting.
 - [ ] Add CI for linting.
 - [x] Add CI for tests.
