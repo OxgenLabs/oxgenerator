@@ -22,9 +22,11 @@ async fn main() {
         .merge(health_routes)
         .with_state(app_state.clone());
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let port = 3000;
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
 
     let listener = TcpListener::bind(addr).await.unwrap();
-
+    
+    println!("API running on: http://localhost:{}/", port);
     axum::serve(listener, app).await.unwrap();
 }
