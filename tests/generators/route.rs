@@ -1,32 +1,12 @@
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::path::Path;
 
 use oxgen::core::error::OxgenError;
 use oxgen::core::generator::Generator;
 use oxgen::generators::route::RouteGenerator;
 use tempfile::TempDir;
 
-static TEST_MUTEX: Mutex<()> = Mutex::new(());
-
-struct CurrentDirGuard {
-    previous_dir: PathBuf,
-}
-
-impl CurrentDirGuard {
-    fn change_to(path: &Path) -> Self {
-        let previous_dir = std::env::current_dir().unwrap();
-        std::env::set_current_dir(path).unwrap();
-
-        Self { previous_dir }
-    }
-}
-
-impl Drop for CurrentDirGuard {
-    fn drop(&mut self) {
-        std::env::set_current_dir(&self.previous_dir).unwrap();
-    }
-}
+use crate::common::current_dir::CurrentDirGuard;
 
 fn create_oxgen_project() -> TempDir {
     let temp_dir = tempfile::tempdir().unwrap();
@@ -65,6 +45,7 @@ edition = "2024"
     routes::health::health_routes,
     state::{AppState, SecretStore},
 };
+
 use axum::Router;
 use dotenv::dotenv;
 use std::net::SocketAddr;
@@ -73,6 +54,7 @@ use tokio::net::TcpListener;
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+
     let secret_store = SecretStore;
 
     let app_state = AppState {
@@ -81,12 +63,12 @@ async fn main() {
     };
 
     let health_routes = health_routes();
+
     let app = Router::new()
         .merge(health_routes)
         .with_state(app_state.clone());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
-
     let listener = TcpListener::bind(addr).await.unwrap();
 
     axum::serve(listener, app).await.unwrap();
@@ -104,7 +86,6 @@ fn count_occurrences(content: &str, pattern: &str) -> usize {
 
 #[test]
 fn route_generator_creates_route_file() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
@@ -130,7 +111,6 @@ fn route_generator_creates_route_file() {
 
 #[test]
 fn route_generator_replaces_template_placeholders() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
@@ -156,7 +136,6 @@ fn route_generator_replaces_template_placeholders() {
 
 #[test]
 fn route_generator_updates_routes_mod_file() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
@@ -172,7 +151,6 @@ fn route_generator_updates_routes_mod_file() {
 
 #[test]
 fn route_generator_updates_main_file() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
@@ -191,7 +169,6 @@ fn route_generator_updates_main_file() {
 
 #[test]
 fn route_generator_returns_file_already_exists_without_touching_main_or_routes_mod() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
@@ -201,6 +178,7 @@ fn route_generator_returns_file_already_exists_without_touching_main_or_routes_m
     let routes_mod_before = fs::read_to_string(temp_dir.path().join("src/routes/mod.rs")).unwrap();
 
     let generator = RouteGenerator::new("user".to_string(), false, false);
+
     let result = generator.generate();
 
     assert!(matches!(
@@ -219,7 +197,6 @@ fn route_generator_returns_file_already_exists_without_touching_main_or_routes_m
 
 #[test]
 fn route_generator_force_overwrites_existing_route_file() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
@@ -237,14 +214,15 @@ fn route_generator_force_overwrites_existing_route_file() {
 
 #[test]
 fn route_generator_force_does_not_duplicate_main_import_or_merge() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     let generator = RouteGenerator::new("user".to_string(), false, false);
+
     generator.generate().unwrap();
 
     let forced_generator = RouteGenerator::new("user".to_string(), true, false);
+
     forced_generator.generate().unwrap();
     forced_generator.generate().unwrap();
 
@@ -258,7 +236,6 @@ fn route_generator_force_does_not_duplicate_main_import_or_merge() {
 
 #[test]
 fn route_generator_dry_run_does_not_create_or_update_files() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
@@ -280,7 +257,6 @@ fn route_generator_dry_run_does_not_create_or_update_files() {
 
 #[test]
 fn route_generator_supports_kebab_case_resource_name() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
@@ -309,11 +285,11 @@ fn route_generator_supports_kebab_case_resource_name() {
 
 #[test]
 fn route_generator_returns_invalid_name_for_empty_resource_name() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     let generator = RouteGenerator::new("".to_string(), false, false);
+
     let result = generator.generate();
 
     assert!(matches!(result, Err(OxgenError::InvalidName(_))));
@@ -321,11 +297,11 @@ fn route_generator_returns_invalid_name_for_empty_resource_name() {
 
 #[test]
 fn route_generator_returns_invalid_name_for_invalid_resource_name() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     let generator = RouteGenerator::new("user/profile".to_string(), false, false);
+
     let result = generator.generate();
 
     assert!(matches!(result, Err(OxgenError::InvalidName(_))));
@@ -333,11 +309,11 @@ fn route_generator_returns_invalid_name_for_invalid_resource_name() {
 
 #[test]
 fn route_generator_fails_outside_rust_project() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = tempfile::tempdir().unwrap();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     let generator = RouteGenerator::new("user".to_string(), false, false);
+
     let result = generator.generate();
 
     assert!(matches!(result, Err(OxgenError::ProjectNotFound)));
@@ -345,7 +321,6 @@ fn route_generator_fails_outside_rust_project() {
 
 #[test]
 fn route_generator_fails_outside_oxgen_project() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = tempfile::tempdir().unwrap();
     let root = temp_dir.path();
 
@@ -383,6 +358,7 @@ fn main() {}
     let _guard = CurrentDirGuard::change_to(root);
 
     let generator = RouteGenerator::new("user".to_string(), false, false);
+
     let result = generator.generate();
 
     assert!(matches!(result, Err(OxgenError::OxgenProjectNotFound)));
@@ -390,7 +366,6 @@ fn main() {}
 
 #[test]
 fn route_generator_returns_project_not_found_when_main_file_is_missing() {
-    let _lock = TEST_MUTEX.lock().unwrap();
     let temp_dir = tempfile::tempdir().unwrap();
     let root = temp_dir.path();
 
@@ -424,6 +399,7 @@ edition = "2024"
     let _guard = CurrentDirGuard::change_to(root);
 
     let generator = RouteGenerator::new("user".to_string(), false, false);
+
     let result = generator.generate();
 
     assert!(matches!(result, Err(OxgenError::ProjectNotFound)));
