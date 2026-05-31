@@ -1,76 +1,85 @@
-use std::env;
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::path::Path;
 
 use oxgen::core::error::OxgenError;
 use oxgen::core::generator::Generator;
 use oxgen::generators::module::ModuleGenerator;
-use tempfile::tempdir;
+use tempfile::TempDir;
 
-static CURRENT_DIR_LOCK: Mutex<()> = Mutex::new(());
+use crate::common::current_dir::CurrentDirGuard;
 
-struct CurrentDirGuard {
-    previous_dir: PathBuf,
-}
+fn create_oxgen_project() -> TempDir {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let root = temp_dir.path();
 
-impl CurrentDirGuard {
-    fn change_to(path: &Path) -> Self {
-        let previous_dir = env::current_dir().unwrap();
-        env::set_current_dir(path).unwrap();
-
-        Self { previous_dir }
-    }
-}
-
-impl Drop for CurrentDirGuard {
-    fn drop(&mut self) {
-        env::set_current_dir(&self.previous_dir).unwrap();
-    }
-}
-
-fn create_minimal_oxgen_project() -> tempfile::TempDir {
-    let temp_dir = tempdir().unwrap();
-    let project = temp_dir.path();
-
-    fs::create_dir_all(project.join(".oxgen")).unwrap();
-    fs::create_dir_all(project.join("src/modules")).unwrap();
-    fs::create_dir_all(project.join("src/routes")).unwrap();
+    fs::create_dir_all(root.join(".oxgen")).unwrap();
+    fs::create_dir_all(root.join("src/modules")).unwrap();
+    fs::create_dir_all(root.join("src/routes")).unwrap();
 
     fs::write(
-        project.join(".oxgen/config.toml"),
+        root.join(".oxgen/config.toml"),
         r#"generator = "oxgen"
 "#,
     )
     .unwrap();
 
     fs::write(
-        project.join("Cargo.toml"),
+        root.join("Cargo.toml"),
         r#"[package]
-name = "test-api"
+name = "test-app"
 version = "0.1.0"
 edition = "2024"
 "#,
     )
     .unwrap();
 
-    fs::write(project.join("src/modules/mod.rs"), "pub mod health;\n").unwrap();
-    fs::write(project.join("src/routes/mod.rs"), "pub mod health;\n").unwrap();
+    fs::write(
+        root.join("src/modules/mod.rs"),
+        r#"pub mod health;
+"#,
+    )
+    .unwrap();
 
     fs::write(
-        project.join("src/main.rs"),
-        r#"use test_api::{
+        root.join("src/routes/mod.rs"),
+        r#"pub mod health;
+"#,
+    )
+    .unwrap();
+
+    fs::write(
+        root.join("src/main.rs"),
+        r#"use test_app::{
     routes::health::health_routes,
+    state::{AppState, SecretStore},
 };
 
 use axum::Router;
+use dotenv::dotenv;
+use std::net::SocketAddr;
+use tokio::net::TcpListener;
 
-async fn bootstrap() {
+#[tokio::main]
+async fn main() {
+    dotenv().ok();
+
+    let secret_store = SecretStore;
+
+    let app_state = AppState {
+        secret_store,
+        started_at: std::time::Instant::now(),
+    };
+
     let health_routes = health_routes();
 
     let app = Router::new()
         .merge(health_routes)
-        .with_state(());
+        .with_state(app_state.clone());
+
+    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let listener = TcpListener::bind(addr).await.unwrap();
+
+    axum::serve(listener, app).await.unwrap();
 }
 "#,
     )
@@ -95,9 +104,8 @@ fn count_occurrences(content: &str, pattern: &str) -> usize {
 }
 
 #[test]
-fn generate_module_creates_all_expected_files() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_creates_all_expected_files() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
@@ -105,16 +113,25 @@ fn generate_module_creates_all_expected_files() {
     assert!(temp_dir.path().join("src/modules/user").is_dir());
     assert!(temp_dir.path().join("src/modules/user/model.rs").is_file());
     assert!(temp_dir.path().join("src/modules/user/dto.rs").is_file());
-    assert!(temp_dir.path().join("src/modules/user/service.rs").is_file());
-    assert!(temp_dir.path().join("src/modules/user/controller.rs").is_file());
+    assert!(
+        temp_dir
+            .path()
+            .join("src/modules/user/service.rs")
+            .is_file()
+    );
+    assert!(
+        temp_dir
+            .path()
+            .join("src/modules/user/controller.rs")
+            .is_file()
+    );
     assert!(temp_dir.path().join("src/modules/user/mod.rs").is_file());
     assert!(temp_dir.path().join("src/routes/user.rs").is_file());
 }
 
 #[test]
-fn generate_module_updates_modules_mod_with_resource_module() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_updates_modules_mod_file() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
@@ -126,9 +143,8 @@ fn generate_module_updates_modules_mod_with_resource_module() {
 }
 
 #[test]
-fn generate_module_updates_resource_mod_with_all_module_parts() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_updates_resource_mod_file_with_all_parts() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
@@ -137,14 +153,21 @@ fn generate_module_updates_resource_mod_with_all_module_parts() {
 
     assert!(content.lines().any(|line| line.trim() == "pub mod model;"));
     assert!(content.lines().any(|line| line.trim() == "pub mod dto;"));
-    assert!(content.lines().any(|line| line.trim() == "pub mod service;"));
-    assert!(content.lines().any(|line| line.trim() == "pub mod controller;"));
+    assert!(
+        content
+            .lines()
+            .any(|line| line.trim() == "pub mod service;")
+    );
+    assert!(
+        content
+            .lines()
+            .any(|line| line.trim() == "pub mod controller;")
+    );
 }
 
 #[test]
-fn generate_module_updates_routes_mod_file() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_updates_routes_mod_file() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
@@ -156,9 +179,8 @@ fn generate_module_updates_routes_mod_file() {
 }
 
 #[test]
-fn generate_module_updates_main_file_with_route_import_and_merge() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_updates_main_file_with_route_import_and_merge() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
@@ -172,9 +194,8 @@ fn generate_module_updates_main_file_with_route_import_and_merge() {
 }
 
 #[test]
-fn generate_module_replaces_placeholders_in_generated_files() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_replaces_placeholders_in_all_generated_files() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
@@ -197,9 +218,8 @@ fn generate_module_replaces_placeholders_in_generated_files() {
 }
 
 #[test]
-fn generate_module_generates_expected_model_content() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_generates_expected_model_content() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
@@ -215,9 +235,8 @@ fn generate_module_generates_expected_model_content() {
 }
 
 #[test]
-fn generate_module_generates_expected_dto_content() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_generates_expected_dto_content() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
@@ -233,9 +252,8 @@ fn generate_module_generates_expected_dto_content() {
 }
 
 #[test]
-fn generate_module_generates_expected_service_content() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_generates_expected_service_content() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
@@ -256,9 +274,8 @@ fn generate_module_generates_expected_service_content() {
 }
 
 #[test]
-fn generate_module_generates_expected_controller_content() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_generates_expected_controller_content() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
@@ -290,9 +307,8 @@ fn generate_module_generates_expected_controller_content() {
 }
 
 #[test]
-fn generate_module_generates_expected_route_content() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_generates_expected_route_content() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
@@ -310,20 +326,36 @@ fn generate_module_generates_expected_route_content() {
 }
 
 #[test]
-fn generate_module_uses_snake_case_for_files_and_pascal_case_for_types() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_supports_kebab_case_resource_name() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user-profile", false, false).unwrap();
 
-    assert!(temp_dir.path().join("src/modules/user_profile/model.rs").is_file());
-    assert!(temp_dir.path().join("src/modules/user_profile/dto.rs").is_file());
-    assert!(temp_dir.path().join("src/modules/user_profile/service.rs").is_file());
-    assert!(temp_dir
-        .path()
-        .join("src/modules/user_profile/controller.rs")
-        .is_file());
+    assert!(
+        temp_dir
+            .path()
+            .join("src/modules/user_profile/model.rs")
+            .is_file()
+    );
+    assert!(
+        temp_dir
+            .path()
+            .join("src/modules/user_profile/dto.rs")
+            .is_file()
+    );
+    assert!(
+        temp_dir
+            .path()
+            .join("src/modules/user_profile/service.rs")
+            .is_file()
+    );
+    assert!(
+        temp_dir
+            .path()
+            .join("src/modules/user_profile/controller.rs")
+            .is_file()
+    );
     assert!(temp_dir.path().join("src/routes/user_profile.rs").is_file());
 
     let model_content =
@@ -332,11 +364,16 @@ fn generate_module_uses_snake_case_for_files_and_pascal_case_for_types() {
         fs::read_to_string(temp_dir.path().join("src/modules/user_profile/dto.rs")).unwrap();
     let service_content =
         fs::read_to_string(temp_dir.path().join("src/modules/user_profile/service.rs")).unwrap();
-    let controller_content =
-        fs::read_to_string(temp_dir.path().join("src/modules/user_profile/controller.rs")).unwrap();
+    let controller_content = fs::read_to_string(
+        temp_dir
+            .path()
+            .join("src/modules/user_profile/controller.rs"),
+    )
+    .unwrap();
     let route_content =
         fs::read_to_string(temp_dir.path().join("src/routes/user_profile.rs")).unwrap();
-    let modules_mod_content = fs::read_to_string(temp_dir.path().join("src/modules/mod.rs")).unwrap();
+    let modules_mod_content =
+        fs::read_to_string(temp_dir.path().join("src/modules/mod.rs")).unwrap();
     let routes_mod_content = fs::read_to_string(temp_dir.path().join("src/routes/mod.rs")).unwrap();
     let main_content = fs::read_to_string(temp_dir.path().join("src/main.rs")).unwrap();
 
@@ -373,33 +410,38 @@ fn generate_module_uses_snake_case_for_files_and_pascal_case_for_types() {
     assert!(route_content.contains("update_user_profile_handler"));
     assert!(route_content.contains(r#".nest("/user_profile", routes)"#));
 
-    assert!(modules_mod_content
-        .lines()
-        .any(|line| line.trim() == "pub mod user_profile;"));
-    assert!(routes_mod_content
-        .lines()
-        .any(|line| line.trim() == "pub mod user_profile;"));
+    assert!(
+        modules_mod_content
+            .lines()
+            .any(|line| line.trim() == "pub mod user_profile;")
+    );
+    assert!(
+        routes_mod_content
+            .lines()
+            .any(|line| line.trim() == "pub mod user_profile;")
+    );
     assert!(main_content.contains("user_profile::user_profile_routes,"));
     assert!(main_content.contains(".merge(user_profile_routes())"));
 }
 
 #[test]
-fn generate_module_fails_if_module_already_exists_without_force() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_returns_file_already_exists_without_force() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
 
     let result = generate_module("user", false, false);
 
-    assert!(matches!(result, Err(OxgenError::FileAlreadyExists(path)) if path.ends_with("src/modules/user/model.rs")));
+    assert!(matches!(
+        result,
+        Err(OxgenError::FileAlreadyExists(path)) if Path::new(&path) == Path::new("src/modules/user/model.rs")
+    ));
 }
 
 #[test]
-fn generate_module_overwrites_existing_files_with_force() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_force_overwrites_existing_files() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     fs::create_dir_all("src/modules/user").unwrap();
@@ -432,9 +474,8 @@ fn generate_module_overwrites_existing_files_with_force() {
 }
 
 #[test]
-fn generate_module_dry_run_creates_nothing_and_does_not_update_existing_files() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_dry_run_does_not_create_or_update_files() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     let modules_mod_before = fs::read_to_string("src/modules/mod.rs").unwrap();
@@ -460,9 +501,8 @@ fn generate_module_dry_run_creates_nothing_and_does_not_update_existing_files() 
 }
 
 #[test]
-fn generate_module_force_does_not_duplicate_module_declarations() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_force_does_not_duplicate_module_declarations() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
@@ -473,9 +513,15 @@ fn generate_module_force_does_not_duplicate_module_declarations() {
     let resource_mod_content = fs::read_to_string("src/modules/user/mod.rs").unwrap();
 
     assert_eq!(count_lines_equal(&modules_mod_content, "pub mod user;"), 1);
-    assert_eq!(count_lines_equal(&resource_mod_content, "pub mod model;"), 1);
+    assert_eq!(
+        count_lines_equal(&resource_mod_content, "pub mod model;"),
+        1
+    );
     assert_eq!(count_lines_equal(&resource_mod_content, "pub mod dto;"), 1);
-    assert_eq!(count_lines_equal(&resource_mod_content, "pub mod service;"), 1);
+    assert_eq!(
+        count_lines_equal(&resource_mod_content, "pub mod service;"),
+        1
+    );
     assert_eq!(
         count_lines_equal(&resource_mod_content, "pub mod controller;"),
         1
@@ -483,9 +529,8 @@ fn generate_module_force_does_not_duplicate_module_declarations() {
 }
 
 #[test]
-fn generate_module_force_does_not_duplicate_route_declaration_or_main_merge() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
+fn module_generator_force_does_not_duplicate_route_declaration_or_main_merge() {
+    let temp_dir = create_oxgen_project();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     generate_module("user", false, false).unwrap();
@@ -501,9 +546,28 @@ fn generate_module_force_does_not_duplicate_route_declaration_or_main_merge() {
 }
 
 #[test]
-fn generate_module_fails_outside_rust_project() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = tempdir().unwrap();
+fn module_generator_returns_invalid_name_for_empty_resource_name() {
+    let temp_dir = create_oxgen_project();
+    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+
+    let result = generate_module("", false, false);
+
+    assert!(matches!(result, Err(OxgenError::InvalidName(_))));
+}
+
+#[test]
+fn module_generator_returns_invalid_name_for_invalid_resource_name() {
+    let temp_dir = create_oxgen_project();
+    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+
+    let result = generate_module("user/profile", false, false);
+
+    assert!(matches!(result, Err(OxgenError::InvalidName(_))));
+}
+
+#[test]
+fn module_generator_fails_outside_rust_project() {
+    let temp_dir = tempfile::tempdir().unwrap();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
     let result = generate_module("user", false, false);
@@ -512,24 +576,50 @@ fn generate_module_fails_outside_rust_project() {
 }
 
 #[test]
-fn generate_module_fails_inside_non_oxgen_rust_project() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = tempdir().unwrap();
-    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+fn module_generator_fails_outside_oxgen_project() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let root = temp_dir.path();
 
-    fs::create_dir_all("src").unwrap();
+    fs::create_dir_all(root.join("src/modules")).unwrap();
+    fs::create_dir_all(root.join("src/routes")).unwrap();
 
     fs::write(
-        "Cargo.toml",
+        root.join("Cargo.toml"),
         r#"[package]
-name = "plain-rust-api"
+name = "test-app"
 version = "0.1.0"
 edition = "2024"
 "#,
     )
     .unwrap();
 
-    fs::write("src/main.rs", "fn main() {}\n").unwrap();
+    fs::write(
+        root.join("src/modules/mod.rs"),
+        r#"pub mod health;
+"#,
+    )
+    .unwrap();
+
+    fs::write(
+        root.join("src/routes/mod.rs"),
+        r#"pub mod health;
+"#,
+    )
+    .unwrap();
+
+    fs::write(
+        root.join("src/main.rs"),
+        r#"use test_app::{
+    routes::health::health_routes,
+    state::{AppState, SecretStore},
+};
+
+fn main() {}
+"#,
+    )
+    .unwrap();
+
+    let _guard = CurrentDirGuard::change_to(root);
 
     let result = generate_module("user", false, false);
 
@@ -537,12 +627,48 @@ edition = "2024"
 }
 
 #[test]
-fn generate_module_rejects_invalid_module_name() {
-    let _lock = CURRENT_DIR_LOCK.lock().unwrap();
-    let temp_dir = create_minimal_oxgen_project();
-    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+fn module_generator_returns_project_not_found_when_main_file_is_missing() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let root = temp_dir.path();
 
-    let result = generate_module("user profile", false, false);
+    fs::create_dir_all(root.join(".oxgen")).unwrap();
+    fs::create_dir_all(root.join("src/modules")).unwrap();
+    fs::create_dir_all(root.join("src/routes")).unwrap();
 
-    assert!(matches!(result, Err(OxgenError::InvalidName(name)) if name == "user profile"));
+    fs::write(
+        root.join(".oxgen/config.toml"),
+        r#"generator = "oxgen"
+"#,
+    )
+    .unwrap();
+
+    fs::write(
+        root.join("Cargo.toml"),
+        r#"[package]
+name = "test-app"
+version = "0.1.0"
+edition = "2024"
+"#,
+    )
+    .unwrap();
+
+    fs::write(
+        root.join("src/modules/mod.rs"),
+        r#"pub mod health;
+"#,
+    )
+    .unwrap();
+
+    fs::write(
+        root.join("src/routes/mod.rs"),
+        r#"pub mod health;
+"#,
+    )
+    .unwrap();
+
+    let _guard = CurrentDirGuard::change_to(root);
+
+    let result = generate_module("user", false, false);
+
+    assert!(matches!(result, Err(OxgenError::ProjectNotFound)));
 }
