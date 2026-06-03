@@ -8,16 +8,19 @@ use crate::core::version::Version;
 
 #[cfg(unix)]
 const UNIX_INSTALL_SCRIPT_URL: &str =
-    "https://raw.githubusercontent.com/OxgeneratorLabs/oxgenerator/feat/updater/install.sh";
+    "https://raw.githubusercontent.com/OxgeneratorLabs/oxgenerator/main/install.sh";
 
 #[cfg(windows)]
 const WINDOWS_INSTALL_SCRIPT_URL: &str =
-    "https://raw.githubusercontent.com/OxgeneratorLabs/oxgenerator/feat/updater/install.ps1";
+    "https://raw.githubusercontent.com/OxgeneratorLabs/oxgenerator/main/install.ps1";
 
 pub fn update() -> OxgenResult<()> {
-    if !Version::remote_version_is_greater(Version::get_local_version(), Version::get_remote_version()) {
+    if !Version::local_version_is_lower_than_remote_version(
+        Version::get_local_version(),
+        Version::get_remote_version(),
+    ) {
         println!("Already up to date.");
-        return Ok(());        
+        return Ok(());
     }
 
     let current_exe = env::current_exe().map_err(|error| OxgenError::Io(error.to_string()))?;
