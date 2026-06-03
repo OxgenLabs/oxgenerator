@@ -7,11 +7,11 @@ use crate::core::result::OxgenResult;
 
 #[cfg(unix)]
 const UNIX_INSTALL_SCRIPT_URL: &str =
-    "https://raw.githubusercontent.com/OxgeneratorLabs/oxgenerator/main/install.sh";
+    "https://raw.githubusercontent.com/OxgeneratorLabs/oxgenerator/feat/updater/install.sh";
 
 #[cfg(windows)]
 const WINDOWS_INSTALL_SCRIPT_URL: &str =
-    "https://raw.githubusercontent.com/OxgeneratorLabs/oxgenerator/main/install.ps1";
+    "https://raw.githubusercontent.com/OxgeneratorLabs/oxgenerator/feat/updater/install.ps1";
 
 pub fn update() -> OxgenResult<()> {
     if is_probably_installed_with_cargo() {
