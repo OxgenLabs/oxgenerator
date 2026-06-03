@@ -1,5 +1,5 @@
 [![ci](https://github.com/OxgeneratorLabs/oxgenerator/actions/workflows/ci.yml/badge.svg)](https://github.com/OxgeneratorLabs/oxgenerator/actions/workflows/ci.yml)
-[![Crates.io](https://img.shields.io/crates/v/oxgen.svg)](https://crates.io/crates/oxgenerator)
+[![Crates.io](https://img.shields.io/crates/v/oxgen.svg)](https://crates.io/crates/oxgen)
 
 `oxgen` is a small Rust CLI that scaffolds clean **API** projects with a structured architecture from the first command.
 
@@ -91,7 +91,7 @@ Linux / macOS
 curl -fsSL https://raw.githubusercontent.com/OxgeneratorLabs/oxgenerator/main/install.sh | sh
 ```
 
-Windows in powershell
+Windows in PowerShell
 ```
 irm https://raw.githubusercontent.com/OxgeneratorLabs/oxgenerator/main/install.ps1 | iex
 ```
