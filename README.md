@@ -1,4 +1,4 @@
-[![Test](https://github.com/OxgeneratorLabs/oxgenerator/actions/workflows/test.yml/badge.svg)](https://github.com/OxgeneratorLabs/oxgenerator/actions/workflows/test.yml)
+[![ci](https://github.com/OxgeneratorLabs/oxgenerator/actions/workflows/ci.yml/badge.svg)](https://github.com/OxgeneratorLabs/oxgenerator/actions/workflows/ci.yml)
 [![Crates.io](https://img.shields.io/crates/v/oxgen.svg)](https://crates.io/crates/oxgenerator)
 
 `oxgen` is a small Rust CLI that scaffolds clean **API** projects with a structured architecture from the first command.
