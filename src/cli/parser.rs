@@ -14,6 +14,7 @@ pub fn parse_args(args: Vec<String>) -> OxgenResult<Command> {
         "generate" | "g" => parse_generate_command(&args[1..]),
         "help" | "--help" | "-h" => Ok(Command::Help),
         "version" | "--version" | "-v" => Ok(Command::Version),
+        "update" => Ok(Command::Update),
         unknown => Err(OxgenError::UnknownCommand(unknown.to_string())),
     }
 }
@@ -53,7 +54,7 @@ fn parse_generate_command(args: &[String]) -> OxgenResult<Command> {
     let dry_run = has_flag(args, "--dry-run");
 
     let generator = match generator {
-        "resource" | "res" => GeneratorCommand::Resource {
+        "module" | "mod" => GeneratorCommand::Module {
             name,
             force,
             dry_run,
@@ -69,6 +70,16 @@ fn parse_generate_command(args: &[String]) -> OxgenResult<Command> {
             dry_run,
         },
         "model" => GeneratorCommand::Model {
+            name,
+            force,
+            dry_run,
+        },
+        "dto" => GeneratorCommand::Dto {
+            name,
+            force,
+            dry_run,
+        },
+        "route" => GeneratorCommand::Route {
             name,
             force,
             dry_run,

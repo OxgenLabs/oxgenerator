@@ -52,6 +52,13 @@ fn parser_parses_version_long_flag() {
 }
 
 #[test]
+fn parser_parses_update_flag() {
+    let command = parse_args(vec!["update".to_string()]).unwrap();
+
+    assert_eq!(command, Command::Update);
+}
+
+#[test]
 fn parser_parses_new_command() {
     let command = parse_args(vec!["new".to_string(), "test-api".to_string()]).unwrap();
 
@@ -158,10 +165,10 @@ fn parser_returns_error_for_unknown_command() {
 }
 
 #[test]
-fn parser_parses_generate_resource_command() {
+fn parser_parses_generate_module_command() {
     let command = parse_args(vec![
         "generate".to_string(),
-        "resource".to_string(),
+        "module".to_string(),
         "user".to_string(),
     ])
     .unwrap();
@@ -169,7 +176,7 @@ fn parser_parses_generate_resource_command() {
     assert_eq!(
         command,
         Command::Generate {
-            generator: GeneratorCommand::Resource {
+            generator: GeneratorCommand::Module {
                 name: "user".to_string(),
                 force: false,
                 dry_run: false,
@@ -179,10 +186,10 @@ fn parser_parses_generate_resource_command() {
 }
 
 #[test]
-fn parser_parses_g_resource_alias_command() {
+fn parser_parses_g_module_alias_command() {
     let command = parse_args(vec![
         "g".to_string(),
-        "res".to_string(),
+        "mod".to_string(),
         "user".to_string(),
         "--force".to_string(),
         "--dry-run".to_string(),
@@ -192,7 +199,7 @@ fn parser_parses_g_resource_alias_command() {
     assert_eq!(
         command,
         Command::Generate {
-            generator: GeneratorCommand::Resource {
+            generator: GeneratorCommand::Module {
                 name: "user".to_string(),
                 force: true,
                 dry_run: true,
@@ -324,4 +331,217 @@ fn parser_returns_error_for_unknown_generator() {
     ]);
 
     assert!(matches!(result, Err(OxgenError::UnknownGenerator(_))));
+}
+
+#[test]
+fn parser_parses_generate_dto_command() {
+    let command = parse_args(vec![
+        "generate".to_string(),
+        "dto".to_string(),
+        "user".to_string(),
+    ])
+    .unwrap();
+
+    assert_eq!(
+        command,
+        Command::Generate {
+            generator: GeneratorCommand::Dto {
+                name: "user".to_string(),
+                force: false,
+                dry_run: false,
+            }
+        }
+    );
+}
+
+#[test]
+fn parser_parses_g_dto_command() {
+    let command = parse_args(vec!["g".to_string(), "dto".to_string(), "user".to_string()]).unwrap();
+
+    assert_eq!(
+        command,
+        Command::Generate {
+            generator: GeneratorCommand::Dto {
+                name: "user".to_string(),
+                force: false,
+                dry_run: false,
+            }
+        }
+    );
+}
+
+#[test]
+fn parser_parses_generate_dto_command_with_force() {
+    let command = parse_args(vec![
+        "generate".to_string(),
+        "dto".to_string(),
+        "user".to_string(),
+        "--force".to_string(),
+    ])
+    .unwrap();
+
+    assert_eq!(
+        command,
+        Command::Generate {
+            generator: GeneratorCommand::Dto {
+                name: "user".to_string(),
+                force: true,
+                dry_run: false,
+            }
+        }
+    );
+}
+
+#[test]
+fn parser_parses_generate_dto_command_with_dry_run() {
+    let command = parse_args(vec![
+        "generate".to_string(),
+        "dto".to_string(),
+        "user".to_string(),
+        "--dry-run".to_string(),
+    ])
+    .unwrap();
+
+    assert_eq!(
+        command,
+        Command::Generate {
+            generator: GeneratorCommand::Dto {
+                name: "user".to_string(),
+                force: false,
+                dry_run: true,
+            }
+        }
+    );
+}
+
+#[test]
+fn parser_parses_generate_dto_command_with_force_and_dry_run() {
+    let command = parse_args(vec![
+        "generate".to_string(),
+        "dto".to_string(),
+        "user".to_string(),
+        "--force".to_string(),
+        "--dry-run".to_string(),
+    ])
+    .unwrap();
+
+    assert_eq!(
+        command,
+        Command::Generate {
+            generator: GeneratorCommand::Dto {
+                name: "user".to_string(),
+                force: true,
+                dry_run: true,
+            }
+        }
+    );
+}
+
+#[test]
+fn parser_parses_generate_route_command() {
+    let command = parse_args(vec![
+        "generate".to_string(),
+        "route".to_string(),
+        "user".to_string(),
+    ])
+    .unwrap();
+
+    assert_eq!(
+        command,
+        Command::Generate {
+            generator: GeneratorCommand::Route {
+                name: "user".to_string(),
+                force: false,
+                dry_run: false,
+            }
+        }
+    );
+}
+
+#[test]
+fn parser_parses_g_route_command() {
+    let command = parse_args(vec![
+        "g".to_string(),
+        "route".to_string(),
+        "user".to_string(),
+    ])
+    .unwrap();
+
+    assert_eq!(
+        command,
+        Command::Generate {
+            generator: GeneratorCommand::Route {
+                name: "user".to_string(),
+                force: false,
+                dry_run: false,
+            }
+        }
+    );
+}
+
+#[test]
+fn parser_parses_generate_route_command_with_force() {
+    let command = parse_args(vec![
+        "generate".to_string(),
+        "route".to_string(),
+        "user".to_string(),
+        "--force".to_string(),
+    ])
+    .unwrap();
+
+    assert_eq!(
+        command,
+        Command::Generate {
+            generator: GeneratorCommand::Route {
+                name: "user".to_string(),
+                force: true,
+                dry_run: false,
+            }
+        }
+    );
+}
+
+#[test]
+fn parser_parses_generate_route_command_with_dry_run() {
+    let command = parse_args(vec![
+        "generate".to_string(),
+        "route".to_string(),
+        "user".to_string(),
+        "--dry-run".to_string(),
+    ])
+    .unwrap();
+
+    assert_eq!(
+        command,
+        Command::Generate {
+            generator: GeneratorCommand::Route {
+                name: "user".to_string(),
+                force: false,
+                dry_run: true,
+            }
+        }
+    );
+}
+
+#[test]
+fn parser_parses_generate_route_command_with_force_and_dry_run() {
+    let command = parse_args(vec![
+        "generate".to_string(),
+        "route".to_string(),
+        "user".to_string(),
+        "--force".to_string(),
+        "--dry-run".to_string(),
+    ])
+    .unwrap();
+
+    assert_eq!(
+        command,
+        Command::Generate {
+            generator: GeneratorCommand::Route {
+                name: "user".to_string(),
+                force: true,
+                dry_run: true,
+            }
+        }
+    );
 }

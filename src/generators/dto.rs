@@ -12,13 +12,13 @@ use crate::core::result::OxgenResult;
 
 static RESOURCE_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/resource");
 
-pub struct ModelGenerator {
+pub struct DtoGenerator {
     name: String,
     force: bool,
     dry_run: bool,
 }
 
-impl ModelGenerator {
+impl DtoGenerator {
     pub fn new(name: String, force: bool, dry_run: bool) -> Self {
         Self {
             name,
@@ -31,8 +31,8 @@ impl ModelGenerator {
         PathBuf::from("src").join("modules").join(&name.snake)
     }
 
-    fn model_path(&self, name: &Name) -> PathBuf {
-        self.module_path(name).join("model.rs")
+    fn dto_path(&self, name: &Name) -> PathBuf {
+        self.module_path(name).join("dto.rs")
     }
 
     fn root_modules_mod_path(&self) -> PathBuf {
@@ -44,7 +44,7 @@ impl ModelGenerator {
     }
 
     fn load_template(&self) -> OxgenResult<&'static str> {
-        let template_path = "model.rs.ox";
+        let template_path = "dto.rs.ox";
 
         let file = RESOURCE_TEMPLATES
             .get_file(template_path)
@@ -139,14 +139,14 @@ impl ModelGenerator {
 
     fn ensure_resource_module_mod_file(&self, name: &Name) -> OxgenResult<()> {
         let module_mod_path = self.resource_module_mod_path(name);
-        let model_declaration = "pub mod model;";
+        let dto_declaration = "pub mod dto;";
 
         if self.dry_run {
             if !module_mod_path.exists() {
                 println!("[CREATE] {}", module_mod_path.display());
                 println!(
                     "[ADD] `{}` to {}",
-                    model_declaration,
+                    dto_declaration,
                     module_mod_path.display()
                 );
                 return Ok(());
@@ -154,11 +154,11 @@ impl ModelGenerator {
 
             let content = fs::read_to_string(&module_mod_path)?;
 
-            if !content.lines().any(|line| line.trim() == model_declaration) {
+            if !content.lines().any(|line| line.trim() == dto_declaration) {
                 println!("[UPDATE] {}", module_mod_path.display());
                 println!(
                     "[ADD] `{}` to {}",
-                    model_declaration,
+                    dto_declaration,
                     module_mod_path.display()
                 );
             }
@@ -176,7 +176,7 @@ impl ModelGenerator {
             String::new()
         };
 
-        if content.lines().any(|line| line.trim() == model_declaration) {
+        if content.lines().any(|line| line.trim() == dto_declaration) {
             return Ok(());
         }
 
@@ -184,7 +184,7 @@ impl ModelGenerator {
             content.push('\n');
         }
 
-        content.push_str(model_declaration);
+        content.push_str(dto_declaration);
         content.push('\n');
 
         fs::write(module_mod_path, content)?;
@@ -193,12 +193,12 @@ impl ModelGenerator {
     }
 }
 
-impl Generator for ModelGenerator {
+impl Generator for DtoGenerator {
     fn generate(&self) -> OxgenResult<()> {
         let name = Name::new(&self.name)?;
 
         let module_path = self.module_path(&name);
-        let model_path = self.model_path(&name);
+        let dto_path = self.dto_path(&name);
 
         ensure_oxgen_project_root()?;
         self.ensure_module_directory(&module_path)?;
@@ -209,7 +209,7 @@ impl Generator for ModelGenerator {
         let content = self.render_template(template, &name);
 
         let writer = FileWriter::new(self.force, self.dry_run);
-        writer.write_file(model_path, &content)?;
+        writer.write_file(dto_path, &content)?;
 
         Ok(())
     }
