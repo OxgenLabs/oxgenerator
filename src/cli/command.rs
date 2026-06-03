@@ -19,6 +19,7 @@ pub enum Command {
     },
     Help,
     Version,
+    Update,
 }
 
 #[derive(Debug, PartialEq)]
@@ -107,6 +108,10 @@ impl Command {
 
             Command::Version => {
                 println!("oxgen {}", env!("CARGO_PKG_VERSION"));
+                Ok(())
+            }
+            Command::Update => {
+                crate::core::updater::update()?;
                 Ok(())
             }
         }
