@@ -1,5 +1,5 @@
-[![Test](https://github.com/OxgeneratorLabs/oxgenerator/actions/workflows/test.yml/badge.svg)](https://github.com/OxgeneratorLabs/oxgenerator/actions/workflows/test.yml)
-[![Crates.io](https://img.shields.io/crates/v/oxgen.svg)](https://crates.io/crates/oxgenerator)
+[![ci](https://github.com/OxgeneratorLabs/oxgenerator/actions/workflows/ci.yml/badge.svg)](https://github.com/OxgeneratorLabs/oxgenerator/actions/workflows/ci.yml)
+[![Crates.io](https://img.shields.io/crates/v/oxgen.svg)](https://crates.io/crates/oxgen)
 
 `oxgen` is a small Rust CLI that scaffolds clean **API** projects with a structured architecture from the first command.
 
@@ -68,8 +68,6 @@ It is designed for developers who want:
 
 ### From crates.io
 
-If the crate is published on crates.io, install it with:
-
 ```bash
 cargo install oxgen
 ```
@@ -84,6 +82,18 @@ You should see something like:
 
 ```bash
 oxgen 0.1.0
+```
+
+### From install script
+
+Linux / macOS
+```bash
+curl -fsSL https://raw.githubusercontent.com/OxgeneratorLabs/oxgenerator/main/install.sh | sh
+```
+
+Windows in PowerShell
+```
+irm https://raw.githubusercontent.com/OxgeneratorLabs/oxgenerator/main/install.ps1 | iex
 ```
 
 ### From source
@@ -280,11 +290,12 @@ The project should stay lightweight. The generator should focus on commands that
     - [x] Generate DTOs or payload structs.
     - [x] Add aliases such as `g`, `mod`, `ctrl` and `svc`.
     - [x] Add tests for module, controller, service, model, routes and dto generators.
-- [ ] Add CI for formatting.
-- [ ] Add CI for linting.
+- [x] Add update command.
+- [x] Add CI for formatting.
+- [x] Add CI for linting.
 - [x] Add CI for tests.
 - [x] Add CI for releases.
-- [ ] Add installation instructions for Linux, macOS and Windows.
+- [x] Add installation instructions for Linux, macOS and Windows.
 - [ ] Add documentation for the generated project architecture.
 - [ ] Add documentation explaining each generated layer and its responsibility.
 - [ ] Add examples showing how to create and extend a generated project.

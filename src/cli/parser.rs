@@ -14,6 +14,7 @@ pub fn parse_args(args: Vec<String>) -> OxgenResult<Command> {
         "generate" | "g" => parse_generate_command(&args[1..]),
         "help" | "--help" | "-h" => Ok(Command::Help),
         "version" | "--version" | "-v" => Ok(Command::Version),
+        "update" => Ok(Command::Update),
         unknown => Err(OxgenError::UnknownCommand(unknown.to_string())),
     }
 }

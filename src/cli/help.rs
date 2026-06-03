@@ -7,10 +7,11 @@ USAGE:
 
 COMMANDS:
     new <name>              Create a new Rust API project
-    generate <type> <name>  Generate a resource inside the current project
+    generate <type> <name>  Generate a module inside the current project
     g <type> <name>         Alias for generate
     help                    Print this help message
     version                 Print the Oxgen version
+    update                  Update Oxgen version
 
 GENERATOR TYPES:
     module                  Generate a complete module structure

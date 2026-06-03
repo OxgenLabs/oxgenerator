@@ -6,3 +6,5 @@ pub mod project;
 pub mod project_detector;
 pub mod result;
 pub mod template;
+pub mod updater;
+pub mod version;

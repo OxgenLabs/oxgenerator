@@ -52,6 +52,13 @@ fn parser_parses_version_long_flag() {
 }
 
 #[test]
+fn parser_parses_update_flag() {
+    let command = parse_args(vec!["update".to_string()]).unwrap();
+
+    assert_eq!(command, Command::Update);
+}
+
+#[test]
 fn parser_parses_new_command() {
     let command = parse_args(vec!["new".to_string(), "test-api".to_string()]).unwrap();
 
