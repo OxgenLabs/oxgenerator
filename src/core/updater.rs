@@ -4,6 +4,7 @@ use std::process::Command;
 
 use crate::core::error::OxgenError;
 use crate::core::result::OxgenResult;
+use crate::core::version::Version;
 
 #[cfg(unix)]
 const UNIX_INSTALL_SCRIPT_URL: &str =
@@ -14,6 +15,11 @@ const WINDOWS_INSTALL_SCRIPT_URL: &str =
     "https://raw.githubusercontent.com/OxgeneratorLabs/oxgenerator/feat/updater/install.ps1";
 
 pub fn update() -> OxgenResult<()> {
+    if !Version::remote_version_is_greater(Version::get_local_version(), Version::get_remote_version()) {
+        println!("Already up to date.");
+        return Ok(());        
+    }
+
     let current_exe = env::current_exe().map_err(|error| OxgenError::Io(error.to_string()))?;
 
     if is_probably_installed_with_cargo(&current_exe) {
