@@ -22,6 +22,8 @@ pub enum OxgenError {
     RustKeywordPackageName(String),
     RustBuiltInPackageName(String),
     GitInitFailed(String),
+    InquireMenuInteractionFailed(String),
+    UnknownDatabase,
 }
 
 impl fmt::Display for OxgenError {
@@ -171,8 +173,21 @@ impl fmt::Display for OxgenError {
             OxgenError::GitInitFailed(err) => {
                 write!(
                     f,
-                    "error: failed to initialize git repository\n\nhelp: make sure Git is installed and available in your PATH.\n\ntry: `git --version`\n\ndetails: {}",
+                    "failed to initialize git repository\n\nhelp: make sure Git is installed and available in your PATH.\n\ntry: `git --version`\n\ndetails: {}",
                     err
+                )
+            }
+            OxgenError::InquireMenuInteractionFailed(err) => {
+                write!(
+                    f,
+                    "failed using menu\n\nhelp: make sure to choose an option.\n\ndetails: {}",
+                    err
+                )
+            }
+            OxgenError::UnknownDatabase => {
+                write!(
+                    f,
+                    "unknown database selected: make sure to choose an available database engine.\n\nRun `oxgen --help` to see available database engine."
                 )
             }
         }

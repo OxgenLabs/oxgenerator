@@ -28,11 +28,17 @@ fn parse_new_command(args: &[String]) -> OxgenResult<Command> {
 
     let force = has_flag(args, "--force");
     let dry_run = has_flag(args, "--dry-run");
+    let has_flag_database = has_flag(args, "--database");
+    let mut database: Option<String> = None;
+    if has_flag_database {
+        database = get_next_arg(args, "--database");
+    }
 
     Ok(Command::New {
         name,
         force,
         dry_run,
+        database,
     })
 }
 
@@ -92,4 +98,11 @@ fn parse_generate_command(args: &[String]) -> OxgenResult<Command> {
 
 fn has_flag(args: &[String], flag: &str) -> bool {
     args.iter().any(|arg| arg == flag)
+}
+
+fn get_next_arg(args: &[String], arg: &str) -> Option<String> {
+    args.iter()
+        .position(|current_arg| current_arg == arg)
+        .and_then(|index| args.get(index + 1))
+        .cloned()
 }

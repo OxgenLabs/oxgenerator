@@ -13,6 +13,7 @@ pub enum Command {
         name: String,
         force: bool,
         dry_run: bool,
+        database: Option<String>,
     },
     Generate {
         generator: GeneratorCommand,
@@ -63,7 +64,8 @@ impl Command {
                 name,
                 force,
                 dry_run,
-            } => NewProjectGenerator::new(name, force, dry_run).generate(),
+                database,
+            } => NewProjectGenerator::new(name, force, dry_run, database).generate(),
 
             Command::Generate { generator } => match generator {
                 GeneratorCommand::Module {

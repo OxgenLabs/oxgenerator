@@ -1,13 +1,17 @@
+use include_dir::{Dir, DirEntry, include_dir};
+use inquire::Select;
 use std::fs;
 use std::path::{Path, PathBuf};
-
-use include_dir::{Dir, DirEntry, include_dir};
 
 use crate::core::error::OxgenError;
 use crate::core::generator::Generator;
 use crate::core::result::OxgenResult;
 
-static PROJECT_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/project");
+static MOCK_PROJECT_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/project/mock");
+
+static MONGODB_PROJECT_TEMPLATES: Dir<'_> =
+    include_dir!("$CARGO_MANIFEST_DIR/templates/project/mongodb");
+
 const BUILT_IN_LIBRARY: &[&str] = &["test"];
 const CONFUSING_PACKAGE_NAMES: &[&str] = &["std", "core", "alloc", "proc_macro"];
 const RUST_KEYWORDS: &[&str] = &[
@@ -22,14 +26,16 @@ pub struct NewProjectGenerator {
     name: String,
     force: bool,
     dry_run: bool,
+    database: Option<String>,
 }
 
 impl NewProjectGenerator {
-    pub fn new(name: String, force: bool, dry_run: bool) -> Self {
+    pub fn new(name: String, force: bool, dry_run: bool, database: Option<String>) -> Self {
         Self {
             name,
             force,
             dry_run,
+            database,
         }
     }
 
@@ -77,10 +83,9 @@ impl NewProjectGenerator {
         self.name.replace('-', "_")
     }
 
-    fn collect_template_files(&self) -> OxgenResult<Vec<PathBuf>> {
+    fn collect_template_files(&self, project_templates: &Dir<'_>) -> OxgenResult<Vec<PathBuf>> {
         let mut files = Vec::new();
-
-        Self::collect_template_files_recursive(&PROJECT_TEMPLATES, &mut files);
+        Self::collect_template_files_recursive(project_templates, &mut files);
 
         Ok(files)
     }
@@ -116,8 +121,13 @@ impl NewProjectGenerator {
             .replace("__CRATE_NAME__", &self.crate_name())
     }
 
-    fn write_template_file(&self, project_path: &Path, template_path: &Path) -> OxgenResult<()> {
-        let file = PROJECT_TEMPLATES
+    fn write_template_file(
+        &self,
+        templates_dir: &Dir<'_>,
+        project_path: &Path,
+        template_path: &Path,
+    ) -> OxgenResult<()> {
+        let file = templates_dir
             .get_file(template_path)
             .ok_or_else(|| OxgenError::InvalidTemplatePath(template_path.display().to_string()))?;
 
@@ -141,11 +151,11 @@ impl NewProjectGenerator {
         Ok(())
     }
 
-    fn print_dry_run(&self, project_path: &Path) -> OxgenResult<()> {
+    fn print_dry_run(&self, templates_dir: &Dir<'_>, project_path: &Path) -> OxgenResult<()> {
         println!("dry run: project `{}` would be created", self.name);
         println!();
 
-        for template_path in self.collect_template_files()? {
+        for template_path in self.collect_template_files(templates_dir)? {
             let output_path = self.output_path_from_template_path(&template_path);
             println!("create {}", project_path.join(output_path).display());
         }
@@ -192,16 +202,44 @@ impl NewProjectGenerator {
             true
         }
     }
+
+    fn ask_db_engine(&self) -> OxgenResult<&Dir<'_>> {
+        let options = vec![
+            "Use the mock database engine",
+            "Use the MongoDB database engine",
+        ];
+
+        let choice = Select::new("Select a database engine:", options).prompt();
+
+        match choice {
+            Ok("Use the mock database engine") => Ok(&MOCK_PROJECT_TEMPLATES),
+            Ok("Use the MongoDB database engine") => Ok(&MONGODB_PROJECT_TEMPLATES),
+            Ok(_) => Err(OxgenError::UnknownDatabase),
+            Err(error) => Err(OxgenError::InquireMenuInteractionFailed(error.to_string())),
+        }
+    }
 }
 
 impl Generator for NewProjectGenerator {
     fn generate(&self) -> OxgenResult<()> {
+        // if self.database is Some and is "mongo" or "mock" we use project_templates
+        // if self.database is None we ask db engine
+        let templates_dir: &Dir<'_> = if let Some(value) = &self.database {
+            match value.as_str() {
+                "mongo" | "mongodb" => &MONGODB_PROJECT_TEMPLATES,
+                "mock" => &MOCK_PROJECT_TEMPLATES,
+                _ => return Err(OxgenError::UnknownDatabase),
+            }
+        } else {
+            self.ask_db_engine()?
+        };
+
         self.validate_package_name()?;
 
         let project_path = self.project_path();
 
         if self.dry_run {
-            return self.print_dry_run(&project_path);
+            return self.print_dry_run(templates_dir, &project_path);
         }
 
         if project_path.exists() {
@@ -216,8 +254,8 @@ impl Generator for NewProjectGenerator {
 
         fs::create_dir_all(&project_path)?;
 
-        for template_path in self.collect_template_files()? {
-            self.write_template_file(&project_path, &template_path)?;
+        for template_path in self.collect_template_files(templates_dir)? {
+            self.write_template_file(templates_dir, &project_path, &template_path)?;
         }
 
         if self.git_available() {
@@ -230,6 +268,9 @@ impl Generator for NewProjectGenerator {
         println!();
         println!("next steps:");
         println!("  cd {}", self.name);
+        if templates_dir == &MONGODB_PROJECT_TEMPLATES {
+            println!("  change MONGO_URI in .env")
+        }
         println!("  cargo run");
 
         Ok(())
