@@ -1,81 +1,23 @@
 use std::fs;
 use std::path::Path;
 
+use assert_cmd::Command;
 use oxgen::core::error::OxgenError;
 use oxgen::core::generator::Generator;
 use oxgen::generators::route::RouteGenerator;
-use tempfile::TempDir;
+use tempfile::tempdir;
 
 use crate::common::current_dir::CurrentDirGuard;
 
-fn create_oxgen_project() -> TempDir {
-    let temp_dir = tempfile::tempdir().unwrap();
-    let root = temp_dir.path();
+fn create_oxgen_project() -> tempfile::TempDir {
+    let temp_dir = tempdir().unwrap();
 
-    fs::create_dir_all(root.join(".oxgen")).unwrap();
-    fs::create_dir_all(root.join("src/routes")).unwrap();
-
-    fs::write(
-        root.join(".oxgen/config.toml"),
-        r#"generator = "oxgen"
-"#,
-    )
-    .unwrap();
-
-    fs::write(
-        root.join("Cargo.toml"),
-        r#"[package]
-name = "test-app"
-version = "0.1.0"
-edition = "2024"
-"#,
-    )
-    .unwrap();
-
-    fs::write(
-        root.join("src/routes/mod.rs"),
-        r#"pub mod health;
-"#,
-    )
-    .unwrap();
-
-    fs::write(
-        root.join("src/main.rs"),
-        r#"use test_app::{
-    routes::health::health_routes,
-    state::{AppState, SecretStore},
-};
-
-use axum::Router;
-use dotenv::dotenv;
-use std::net::SocketAddr;
-use tokio::net::TcpListener;
-
-#[tokio::main]
-async fn main() {
-    dotenv().ok();
-
-    let secret_store = SecretStore;
-
-    let app_state = AppState {
-        secret_store,
-        started_at: std::time::Instant::now(),
-    };
-
-    let health_routes = health_routes();
-
-    let app = Router::new()
-        .merge(health_routes)
-        .with_state(app_state.clone());
-
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
-    let listener = TcpListener::bind(addr).await.unwrap();
-
-    axum::serve(listener, app).await.unwrap();
-}
-"#,
-    )
-    .unwrap();
+    Command::cargo_bin("oxgen")
+        .unwrap()
+        .current_dir(temp_dir.path())
+        .args(["new", "test-api", "--database", "mock"])
+        .assert()
+        .success();
 
     temp_dir
 }
@@ -87,13 +29,14 @@ fn count_occurrences(content: &str, pattern: &str) -> usize {
 #[test]
 fn route_generator_creates_route_file() {
     let temp_dir = create_oxgen_project();
-    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+    let project = temp_dir.path().join("test-api");
+    let _guard = CurrentDirGuard::change_to(&project);
 
     let generator = RouteGenerator::new("user".to_string(), false, false);
 
     generator.generate().unwrap();
 
-    let route_path = temp_dir.path().join("src/routes/user.rs");
+    let route_path = project.join("src/routes/user.rs");
 
     assert!(route_path.exists());
 
@@ -112,13 +55,14 @@ fn route_generator_creates_route_file() {
 #[test]
 fn route_generator_replaces_template_placeholders() {
     let temp_dir = create_oxgen_project();
-    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+    let project = temp_dir.path().join("test-api");
+    let _guard = CurrentDirGuard::change_to(&project);
 
     let generator = RouteGenerator::new("pricing".to_string(), false, false);
 
     generator.generate().unwrap();
 
-    let content = fs::read_to_string(temp_dir.path().join("src/routes/pricing.rs")).unwrap();
+    let content = fs::read_to_string(project.join("src/routes/pricing.rs")).unwrap();
 
     assert!(content.contains("pub fn pricing_routes()"));
     assert!(content.contains("modules::pricing::controller"));
@@ -137,13 +81,14 @@ fn route_generator_replaces_template_placeholders() {
 #[test]
 fn route_generator_updates_routes_mod_file() {
     let temp_dir = create_oxgen_project();
-    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+    let project = temp_dir.path().join("test-api");
+    let _guard = CurrentDirGuard::change_to(&project);
 
     let generator = RouteGenerator::new("user".to_string(), false, false);
 
     generator.generate().unwrap();
 
-    let content = fs::read_to_string(temp_dir.path().join("src/routes/mod.rs")).unwrap();
+    let content = fs::read_to_string(project.join("src/routes/mod.rs")).unwrap();
 
     assert!(content.contains("pub mod health;"));
     assert!(content.contains("pub mod user;"));
@@ -152,13 +97,14 @@ fn route_generator_updates_routes_mod_file() {
 #[test]
 fn route_generator_updates_main_file() {
     let temp_dir = create_oxgen_project();
-    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+    let project = temp_dir.path().join("test-api");
+    let _guard = CurrentDirGuard::change_to(&project);
 
     let generator = RouteGenerator::new("user".to_string(), false, false);
 
     generator.generate().unwrap();
 
-    let content = fs::read_to_string(temp_dir.path().join("src/main.rs")).unwrap();
+    let content = fs::read_to_string(project.join("src/main.rs")).unwrap();
 
     assert!(content.contains("routes::{"));
     assert!(content.contains("health::health_routes,"));
@@ -170,12 +116,13 @@ fn route_generator_updates_main_file() {
 #[test]
 fn route_generator_returns_file_already_exists_without_touching_main_or_routes_mod() {
     let temp_dir = create_oxgen_project();
-    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+    let project = temp_dir.path().join("test-api");
+    let _guard = CurrentDirGuard::change_to(&project);
 
-    fs::write(temp_dir.path().join("src/routes/user.rs"), "existing route").unwrap();
+    fs::write(project.join("src/routes/user.rs"), "existing route").unwrap();
 
-    let main_before = fs::read_to_string(temp_dir.path().join("src/main.rs")).unwrap();
-    let routes_mod_before = fs::read_to_string(temp_dir.path().join("src/routes/mod.rs")).unwrap();
+    let main_before = fs::read_to_string(project.join("src/main.rs")).unwrap();
+    let routes_mod_before = fs::read_to_string(project.join("src/routes/mod.rs")).unwrap();
 
     let generator = RouteGenerator::new("user".to_string(), false, false);
 
@@ -186,9 +133,9 @@ fn route_generator_returns_file_already_exists_without_touching_main_or_routes_m
         Err(OxgenError::FileAlreadyExists(path)) if Path::new(&path) == Path::new("src/routes/user.rs")
     ));
 
-    let main_after = fs::read_to_string(temp_dir.path().join("src/main.rs")).unwrap();
-    let routes_mod_after = fs::read_to_string(temp_dir.path().join("src/routes/mod.rs")).unwrap();
-    let route_content = fs::read_to_string(temp_dir.path().join("src/routes/user.rs")).unwrap();
+    let main_after = fs::read_to_string(project.join("src/main.rs")).unwrap();
+    let routes_mod_after = fs::read_to_string(project.join("src/routes/mod.rs")).unwrap();
+    let route_content = fs::read_to_string(project.join("src/routes/user.rs")).unwrap();
 
     assert_eq!(main_before, main_after);
     assert_eq!(routes_mod_before, routes_mod_after);
@@ -198,15 +145,16 @@ fn route_generator_returns_file_already_exists_without_touching_main_or_routes_m
 #[test]
 fn route_generator_force_overwrites_existing_route_file() {
     let temp_dir = create_oxgen_project();
-    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+    let project = temp_dir.path().join("test-api");
+    let _guard = CurrentDirGuard::change_to(&project);
 
-    fs::write(temp_dir.path().join("src/routes/user.rs"), "existing route").unwrap();
+    fs::write(project.join("src/routes/user.rs"), "existing route").unwrap();
 
     let generator = RouteGenerator::new("user".to_string(), true, false);
 
     generator.generate().unwrap();
 
-    let content = fs::read_to_string(temp_dir.path().join("src/routes/user.rs")).unwrap();
+    let content = fs::read_to_string(project.join("src/routes/user.rs")).unwrap();
 
     assert_ne!(content, "existing route");
     assert!(content.contains("pub fn user_routes()"));
@@ -215,7 +163,8 @@ fn route_generator_force_overwrites_existing_route_file() {
 #[test]
 fn route_generator_force_does_not_duplicate_main_import_or_merge() {
     let temp_dir = create_oxgen_project();
-    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+    let project = temp_dir.path().join("test-api");
+    let _guard = CurrentDirGuard::change_to(&project);
 
     let generator = RouteGenerator::new("user".to_string(), false, false);
 
@@ -226,8 +175,8 @@ fn route_generator_force_does_not_duplicate_main_import_or_merge() {
     forced_generator.generate().unwrap();
     forced_generator.generate().unwrap();
 
-    let main_content = fs::read_to_string(temp_dir.path().join("src/main.rs")).unwrap();
-    let routes_mod_content = fs::read_to_string(temp_dir.path().join("src/routes/mod.rs")).unwrap();
+    let main_content = fs::read_to_string(project.join("src/main.rs")).unwrap();
+    let routes_mod_content = fs::read_to_string(project.join("src/routes/mod.rs")).unwrap();
 
     assert_eq!(count_occurrences(&main_content, "user::user_routes"), 1);
     assert_eq!(count_occurrences(&main_content, ".merge(user_routes())"), 1);
@@ -237,19 +186,20 @@ fn route_generator_force_does_not_duplicate_main_import_or_merge() {
 #[test]
 fn route_generator_dry_run_does_not_create_or_update_files() {
     let temp_dir = create_oxgen_project();
-    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+    let project = temp_dir.path().join("test-api");
+    let _guard = CurrentDirGuard::change_to(&project);
 
-    let main_before = fs::read_to_string(temp_dir.path().join("src/main.rs")).unwrap();
-    let routes_mod_before = fs::read_to_string(temp_dir.path().join("src/routes/mod.rs")).unwrap();
+    let main_before = fs::read_to_string(project.join("src/main.rs")).unwrap();
+    let routes_mod_before = fs::read_to_string(project.join("src/routes/mod.rs")).unwrap();
 
     let generator = RouteGenerator::new("user".to_string(), false, true);
 
     generator.generate().unwrap();
 
-    assert!(!temp_dir.path().join("src/routes/user.rs").exists());
+    assert!(!project.join("src/routes/user.rs").exists());
 
-    let main_after = fs::read_to_string(temp_dir.path().join("src/main.rs")).unwrap();
-    let routes_mod_after = fs::read_to_string(temp_dir.path().join("src/routes/mod.rs")).unwrap();
+    let main_after = fs::read_to_string(project.join("src/main.rs")).unwrap();
+    let routes_mod_after = fs::read_to_string(project.join("src/routes/mod.rs")).unwrap();
 
     assert_eq!(main_before, main_after);
     assert_eq!(routes_mod_before, routes_mod_after);
@@ -258,16 +208,17 @@ fn route_generator_dry_run_does_not_create_or_update_files() {
 #[test]
 fn route_generator_supports_kebab_case_resource_name() {
     let temp_dir = create_oxgen_project();
-    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+    let project = temp_dir.path().join("test-api");
+    let _guard = CurrentDirGuard::change_to(&project);
 
     let generator = RouteGenerator::new("user-profile".to_string(), false, false);
 
     generator.generate().unwrap();
 
-    let route_path = temp_dir.path().join("src/routes/user_profile.rs");
+    let route_path = project.join("src/routes/user_profile.rs");
     let route_content = fs::read_to_string(route_path).unwrap();
-    let routes_mod_content = fs::read_to_string(temp_dir.path().join("src/routes/mod.rs")).unwrap();
-    let main_content = fs::read_to_string(temp_dir.path().join("src/main.rs")).unwrap();
+    let routes_mod_content = fs::read_to_string(project.join("src/routes/mod.rs")).unwrap();
+    let main_content = fs::read_to_string(project.join("src/main.rs")).unwrap();
 
     assert!(route_content.contains("pub fn user_profile_routes()"));
     assert!(route_content.contains("modules::user_profile::controller"));
@@ -286,7 +237,8 @@ fn route_generator_supports_kebab_case_resource_name() {
 #[test]
 fn route_generator_returns_invalid_name_for_empty_resource_name() {
     let temp_dir = create_oxgen_project();
-    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+    let project = temp_dir.path().join("test-api");
+    let _guard = CurrentDirGuard::change_to(&project);
 
     let generator = RouteGenerator::new("".to_string(), false, false);
 
@@ -298,7 +250,8 @@ fn route_generator_returns_invalid_name_for_empty_resource_name() {
 #[test]
 fn route_generator_returns_invalid_name_for_invalid_resource_name() {
     let temp_dir = create_oxgen_project();
-    let _guard = CurrentDirGuard::change_to(temp_dir.path());
+    let project = temp_dir.path().join("test-api");
+    let _guard = CurrentDirGuard::change_to(&project);
 
     let generator = RouteGenerator::new("user/profile".to_string(), false, false);
 
@@ -375,6 +328,7 @@ fn route_generator_returns_project_not_found_when_main_file_is_missing() {
     fs::write(
         root.join(".oxgen/config.toml"),
         r#"generator = "oxgen"
+database = "mock"
 "#,
     )
     .unwrap();
