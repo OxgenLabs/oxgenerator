@@ -26,11 +26,11 @@ pub struct NewProjectGenerator {
     name: String,
     force: bool,
     dry_run: bool,
-    database: Option<String>,
+    database: String,
 }
 
 impl NewProjectGenerator {
-    pub fn new(name: String, force: bool, dry_run: bool, database: Option<String>) -> Self {
+    pub fn new(name: String, force: bool, dry_run: bool, database: String) -> Self {
         Self {
             name,
             force,
@@ -224,14 +224,11 @@ impl Generator for NewProjectGenerator {
     fn generate(&self) -> OxgenResult<()> {
         // if self.database is Some and is "mongo" or "mock" we use project_templates
         // if self.database is None we ask db engine
-        let templates_dir: &Dir<'_> = if let Some(value) = &self.database {
-            match value.as_str() {
-                "mongo" | "mongodb" => &MONGODB_PROJECT_TEMPLATES,
-                "mock" => &MOCK_PROJECT_TEMPLATES,
-                _ => return Err(OxgenError::UnknownDatabase),
-            }
-        } else {
-            self.ask_db_engine()?
+        let templates_dir: &Dir<'_> = match self.database.as_str() {
+            "mongo" | "mongodb" => &MONGODB_PROJECT_TEMPLATES,
+            "mock" => &MOCK_PROJECT_TEMPLATES,
+            "none" => self.ask_db_engine()?,
+            _ => return Err(OxgenError::UnknownDatabase),
         };
 
         self.validate_package_name()?;

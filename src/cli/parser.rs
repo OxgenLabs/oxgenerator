@@ -21,18 +21,22 @@ pub fn parse_args(args: Vec<String>) -> OxgenResult<Command> {
 
 fn parse_new_command(args: &[String]) -> OxgenResult<Command> {
     let name = args
-        .iter()
-        .find(|arg| !arg.starts_with('-'))
+        .first()
         .ok_or_else(|| OxgenError::MissingArgument("project name".to_string()))?
-        .to_string();
+        .clone();
+
+    if name.starts_with("-") {
+        return Err(OxgenError::MissingArgument("project name".to_string()));
+    }
 
     let force = has_flag(args, "--force");
     let dry_run = has_flag(args, "--dry-run");
-    let has_flag_database = has_flag(args, "--database");
-    let mut database: Option<String> = None;
-    if has_flag_database {
-        database = get_next_arg(args, "--database");
-    }
+
+    let database = if has_flag(args, "--database") {
+        parse_database_engine(args)?
+    } else {
+        "none".to_string()
+    };
 
     Ok(Command::New {
         name,
@@ -40,6 +44,25 @@ fn parse_new_command(args: &[String]) -> OxgenResult<Command> {
         dry_run,
         database,
     })
+}
+
+fn parse_database_engine(args: &[String]) -> OxgenResult<String> {
+    let database = get_required_next_arg(args, "--database", "database engine name")?;
+
+    match database.trim().to_lowercase().as_str() {
+        "mongo" | "mongodb" => Ok("mongo".to_string()),
+        "mock" => Ok("mock".to_string()),
+        _ => Err(OxgenError::UnknownDatabase),
+    }
+}
+
+fn get_required_next_arg(args: &[String], arg: &str, argument_name: &str) -> OxgenResult<String> {
+    args.iter()
+        .position(|current_arg| current_arg == arg)
+        .and_then(|index| args.get(index + 1))
+        .filter(|value| !value.starts_with('-'))
+        .cloned()
+        .ok_or_else(|| OxgenError::MissingArgument(argument_name.to_string()))
 }
 
 fn parse_generate_command(args: &[String]) -> OxgenResult<Command> {
@@ -98,11 +121,4 @@ fn parse_generate_command(args: &[String]) -> OxgenResult<Command> {
 
 fn has_flag(args: &[String], flag: &str) -> bool {
     args.iter().any(|arg| arg == flag)
-}
-
-fn get_next_arg(args: &[String], arg: &str) -> Option<String> {
-    args.iter()
-        .position(|current_arg| current_arg == arg)
-        .and_then(|index| args.get(index + 1))
-        .cloned()
 }

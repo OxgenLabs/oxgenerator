@@ -13,7 +13,7 @@ pub enum Command {
         name: String,
         force: bool,
         dry_run: bool,
-        database: Option<String>,
+        database: String,
     },
     Generate {
         generator: GeneratorCommand,
