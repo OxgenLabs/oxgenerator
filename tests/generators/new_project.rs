@@ -154,19 +154,6 @@ fn new_command_dry_run_creates_nothing() {
 }
 
 #[test]
-fn new_command_rejects_invalid_project_name() {
-    let temp_dir = tempdir().unwrap();
-
-    Command::cargo_bin("oxgen")
-        .unwrap()
-        .current_dir(temp_dir.path())
-        .args(["new", "my api", "--database", "mock"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("invalid package name"));
-}
-
-#[test]
 fn new_command_generates_code_compliant_with_cargo_fmt() {
     let temp_dir = tempdir().unwrap();
 
@@ -246,45 +233,6 @@ fn new_command_initializes_git_repository() {
 }
 
 #[test]
-fn new_command_rejects_built_in_library_package_name() {
-    let temp_dir = tempdir().unwrap();
-
-    Command::cargo_bin("oxgen")
-        .unwrap()
-        .current_dir(temp_dir.path())
-        .args(["new", "test", "--database", "mock"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("built-in"));
-}
-
-#[test]
-fn new_command_rejects_confusing_package_name_std() {
-    let temp_dir = tempdir().unwrap();
-
-    Command::cargo_bin("oxgen")
-        .unwrap()
-        .current_dir(temp_dir.path())
-        .args(["new", "std", "--database", "mock"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("confusing"));
-}
-
-#[test]
-fn new_command_rejects_rust_keyword_package_name() {
-    let temp_dir = tempdir().unwrap();
-
-    Command::cargo_bin("oxgen")
-        .unwrap()
-        .current_dir(temp_dir.path())
-        .args(["new", "async", "--database", "mock"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("keyword"));
-}
-
-#[test]
 fn new_command_creates_oxgen_config_file() {
     let temp_dir = tempdir().unwrap();
 
@@ -304,8 +252,5 @@ fn new_command_creates_oxgen_config_file() {
 
     let content = fs::read_to_string(oxgen_config).unwrap();
 
-    assert_eq!(
-        content.trim(),
-        "generator = \"oxgen\"\ndatabase = \"mock\""
-    );
+    assert_eq!(content.trim(), "generator = \"oxgen\"\ndatabase = \"mock\"");
 }

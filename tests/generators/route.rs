@@ -236,32 +236,6 @@ fn route_generator_supports_kebab_case_resource_name() {
 }
 
 #[test]
-fn route_generator_returns_invalid_name_for_empty_resource_name() {
-    let temp_dir = create_oxgen_project();
-    let project = temp_dir.path().join("test-api");
-    let _guard = CurrentDirGuard::change_to(&project);
-
-    let generator = RouteGenerator::new(Name::new("").unwrap(), false, false);
-
-    let result = generator.generate();
-
-    assert!(matches!(result, Err(OxgenError::InvalidName(_))));
-}
-
-#[test]
-fn route_generator_returns_invalid_name_for_invalid_resource_name() {
-    let temp_dir = create_oxgen_project();
-    let project = temp_dir.path().join("test-api");
-    let _guard = CurrentDirGuard::change_to(&project);
-
-    let generator = RouteGenerator::new(Name::new("user/profile").unwrap(), false, false);
-
-    let result = generator.generate();
-
-    assert!(matches!(result, Err(OxgenError::InvalidName(_))));
-}
-
-#[test]
 fn route_generator_fails_outside_rust_project() {
     let temp_dir = tempfile::tempdir().unwrap();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());

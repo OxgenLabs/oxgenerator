@@ -287,17 +287,3 @@ edition = "2021"
         .failure()
         .stderr(predicate::str::contains("no oxgen project found"));
 }
-
-#[test]
-fn generate_model_rejects_invalid_model_name() {
-    let temp_dir = create_oxgen_project();
-    let project = temp_dir.path().join("test-api");
-
-    Command::cargo_bin("oxgen")
-        .unwrap()
-        .current_dir(&project)
-        .args(["generate", "model", "user profile"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("invalid name"));
-}

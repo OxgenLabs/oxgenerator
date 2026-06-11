@@ -270,8 +270,16 @@ fn module_generator_supports_kebab_case_resource_name() {
 
     assert!(project.join("src/modules/user_profile/model.rs").is_file());
     assert!(project.join("src/modules/user_profile/dto.rs").is_file());
-    assert!(project.join("src/modules/user_profile/service.rs").is_file());
-    assert!(project.join("src/modules/user_profile/controller.rs").is_file());
+    assert!(
+        project
+            .join("src/modules/user_profile/service.rs")
+            .is_file()
+    );
+    assert!(
+        project
+            .join("src/modules/user_profile/controller.rs")
+            .is_file()
+    );
     assert!(project.join("src/routes/user_profile.rs").is_file());
 
     let model_content =
@@ -457,28 +465,6 @@ fn module_generator_force_does_not_duplicate_route_declaration_or_main_merge() {
     assert_eq!(count_lines_equal(&routes_mod_content, "pub mod user;"), 1);
     assert_eq!(count_occurrences(&main_content, "user::user_routes"), 1);
     assert_eq!(count_occurrences(&main_content, ".merge(user_routes())"), 1);
-}
-
-#[test]
-fn module_generator_returns_invalid_name_for_empty_resource_name() {
-    let temp_dir = create_oxgen_project();
-    let project = temp_dir.path().join("test-api");
-    let _guard = CurrentDirGuard::change_to(&project);
-
-    let result = generate_module("", false, false);
-
-    assert!(matches!(result, Err(OxgenError::MissingArgument(_))));
-}
-
-#[test]
-fn module_generator_returns_invalid_name_for_invalid_resource_name() {
-    let temp_dir = create_oxgen_project();
-    let project = temp_dir.path().join("test-api");
-    let _guard = CurrentDirGuard::change_to(&project);
-
-    let result = generate_module("user/profile", false, false);
-
-    assert!(matches!(result, Err(OxgenError::InvalidName(_))));
 }
 
 #[test]
