@@ -5,32 +5,24 @@ use std::path::{Path, PathBuf};
 
 use crate::core::error::OxgenError;
 use crate::core::generator::Generator;
+use crate::core::naming::Name;
 use crate::core::result::OxgenResult;
+use crate::core::template::render_template;
 
 static MOCK_PROJECT_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/project/mock");
 
 static MONGODB_PROJECT_TEMPLATES: Dir<'_> =
     include_dir!("$CARGO_MANIFEST_DIR/templates/project/mongodb");
 
-const BUILT_IN_LIBRARY: &[&str] = &["test"];
-const CONFUSING_PACKAGE_NAMES: &[&str] = &["std", "core", "alloc", "proc_macro"];
-const RUST_KEYWORDS: &[&str] = &[
-    "as", "async", "await", "break", "const", "continue", "crate", "dyn", "else", "enum", "extern",
-    "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub",
-    "ref", "return", "self", "Self", "static", "struct", "super", "trait", "true", "type",
-    "unsafe", "use", "where", "while", "abstract", "become", "box", "do", "final", "gen", "macro",
-    "override", "priv", "try", "typeof", "unsized", "virtual", "yield",
-];
-
 pub struct NewProjectGenerator {
-    name: String,
+    name: Name,
     force: bool,
     dry_run: bool,
     database: String,
 }
 
 impl NewProjectGenerator {
-    pub fn new(name: String, force: bool, dry_run: bool, database: String) -> Self {
+    pub fn new(name: Name, force: bool, dry_run: bool, database: String) -> Self {
         Self {
             name,
             force,
@@ -40,47 +32,7 @@ impl NewProjectGenerator {
     }
 
     fn project_path(&self) -> PathBuf {
-        PathBuf::from(&self.name)
-    }
-
-    fn validate_package_name(&self) -> OxgenResult<()> {
-        if self.name.trim().is_empty() {
-            return Err(OxgenError::InvalidPackageName(self.name.clone()));
-        }
-
-        let Some(first_char) = self.name.chars().next() else {
-            return Err(OxgenError::InvalidPackageName(self.name.clone()));
-        };
-
-        if !first_char.is_ascii_alphabetic() {
-            return Err(OxgenError::InvalidPackageName(self.name.clone()));
-        }
-
-        let is_valid = self
-            .name
-            .chars()
-            .all(|char| char.is_ascii_alphanumeric() || char == '-' || char == '_');
-
-        if !is_valid {
-            return Err(OxgenError::InvalidPackageName(self.name.clone()));
-        }
-
-        if BUILT_IN_LIBRARY.contains(&self.name.as_str()) {
-            return Err(OxgenError::RustBuiltInPackageName(self.name.clone()));
-        }
-
-        if CONFUSING_PACKAGE_NAMES.contains(&self.name.as_str()) {
-            return Err(OxgenError::ConfusingPackageName(self.name.clone()));
-        }
-
-        if RUST_KEYWORDS.contains(&self.name.as_str()) {
-            return Err(OxgenError::RustKeywordPackageName(self.name.clone()));
-        }
-        Ok(())
-    }
-
-    fn crate_name(&self) -> String {
-        self.name.replace('-', "_")
+        PathBuf::from(&self.name.raw)
     }
 
     fn collect_template_files(&self, project_templates: &Dir<'_>) -> OxgenResult<Vec<PathBuf>> {
@@ -113,14 +65,6 @@ impl NewProjectGenerator {
         template_path.to_path_buf()
     }
 
-    fn render_template(&self, content: &str) -> String {
-        content
-            .replace("{{project_name}}", &self.name)
-            .replace("{{crate_name}}", &self.crate_name())
-            .replace("__PROJECT_NAME__", &self.name)
-            .replace("__CRATE_NAME__", &self.crate_name())
-    }
-
     fn write_template_file(
         &self,
         templates_dir: &Dir<'_>,
@@ -140,7 +84,7 @@ impl NewProjectGenerator {
 
         match file.contents_utf8() {
             Some(content) => {
-                let rendered_content = self.render_template(content);
+                let rendered_content = render_template(content, &self.name);
                 fs::write(final_output_path, rendered_content)?;
             }
             None => {
@@ -152,7 +96,7 @@ impl NewProjectGenerator {
     }
 
     fn print_dry_run(&self, templates_dir: &Dir<'_>, project_path: &Path) -> OxgenResult<()> {
-        println!("dry run: project `{}` would be created", self.name);
+        println!("dry run: project `{}` would be created", self.name.raw);
         println!();
 
         for template_path in self.collect_template_files(templates_dir)? {
@@ -222,16 +166,15 @@ impl NewProjectGenerator {
 
 impl Generator for NewProjectGenerator {
     fn generate(&self) -> OxgenResult<()> {
-        // if self.database is Some and is "mongo" or "mock" we use project_templates
-        // if self.database is None we ask db engine
+        // if self.database is"mongo" we use MONGODB_PROJECT_TEMPLATES
+        // if self.database is "mock" we use MOCK_PROJECT_TEMPLATES
+        // if self.database is "none" we ask db engine
         let templates_dir: &Dir<'_> = match self.database.as_str() {
             "mongo" | "mongodb" => &MONGODB_PROJECT_TEMPLATES,
             "mock" => &MOCK_PROJECT_TEMPLATES,
             "none" => self.ask_db_engine()?,
             _ => return Err(OxgenError::UnknownDatabase),
         };
-
-        self.validate_package_name()?;
 
         let project_path = self.project_path();
 
@@ -261,10 +204,10 @@ impl Generator for NewProjectGenerator {
 
         self.format_generated_project(&project_path)?;
 
-        println!("created project `{}`", self.name);
+        println!("created project `{}`", self.name.raw);
         println!();
         println!("next steps:");
-        println!("  cd {}", self.name);
+        println!("  cd {}", self.name.raw);
         if templates_dir == &MONGODB_PROJECT_TEMPLATES {
             println!("  change MONGO_URI in .env")
         }

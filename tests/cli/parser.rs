@@ -1,6 +1,7 @@
 use oxgen::cli::command::{Command, GeneratorCommand};
 use oxgen::cli::parser::parse_args;
 use oxgen::core::error::OxgenError;
+use oxgen::core::naming::Name;
 
 #[test]
 fn parser_returns_help_when_no_args_are_provided() {
@@ -65,7 +66,7 @@ fn parser_parses_new_command() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: false,
             dry_run: false,
             database: "none".to_string(),
@@ -85,7 +86,7 @@ fn parser_parses_new_command_with_force() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: true,
             dry_run: false,
             database: "none".to_string(),
@@ -105,7 +106,7 @@ fn parser_parses_new_command_with_dry_run() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: false,
             dry_run: true,
             database: "none".to_string(),
@@ -126,7 +127,7 @@ fn parser_parses_new_command_with_force_and_dry_run() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: true,
             dry_run: true,
             database: "none".to_string(),
@@ -147,7 +148,7 @@ fn parser_parses_new_command_with_mock_database() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: false,
             dry_run: false,
             database: "mock".to_string(),
@@ -168,7 +169,7 @@ fn parser_parses_new_command_with_mongo_database() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: false,
             dry_run: false,
             database: "mongo".to_string(),
@@ -189,7 +190,7 @@ fn parser_parses_new_command_with_mongodb_database_alias() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: false,
             dry_run: false,
             database: "mongo".to_string(),
@@ -210,7 +211,7 @@ fn parser_parses_new_command_with_uppercase_mock_database() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: false,
             dry_run: false,
             database: "mock".to_string(),
@@ -231,7 +232,7 @@ fn parser_parses_new_command_with_uppercase_mongo_database() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: false,
             dry_run: false,
             database: "mongo".to_string(),
@@ -252,7 +253,7 @@ fn parser_parses_new_command_with_uppercase_mongodb_database() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: false,
             dry_run: false,
             database: "mongo".to_string(),
@@ -273,7 +274,7 @@ fn parser_parses_new_command_with_database_value_containing_spaces() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: false,
             dry_run: false,
             database: "mongo".to_string(),
@@ -295,7 +296,7 @@ fn parser_parses_new_command_with_force_and_mock_database() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: true,
             dry_run: false,
             database: "mock".to_string(),
@@ -317,7 +318,7 @@ fn parser_parses_new_command_with_dry_run_and_mock_database() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: false,
             dry_run: true,
             database: "mock".to_string(),
@@ -340,7 +341,7 @@ fn parser_parses_new_command_with_force_dry_run_and_mock_database() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: true,
             dry_run: true,
             database: "mock".to_string(),
@@ -363,7 +364,7 @@ fn parser_parses_new_command_with_force_dry_run_and_mongo_database() {
     assert_eq!(
         command,
         Command::New {
-            name: "test-api".to_string(),
+            name: Name::new("test-api").unwrap(),
             force: true,
             dry_run: true,
             database: "mongo".to_string(),
@@ -458,7 +459,7 @@ fn parser_parses_generate_module_command() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Module {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: false,
                 dry_run: false,
             }
@@ -481,7 +482,7 @@ fn parser_parses_g_module_alias_command() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Module {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: true,
                 dry_run: true,
             }
@@ -502,7 +503,7 @@ fn parser_parses_generate_controller_command() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Controller {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: false,
                 dry_run: false,
             }
@@ -523,7 +524,7 @@ fn parser_parses_generate_controller_alias_command() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Controller {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: false,
                 dry_run: false,
             }
@@ -544,7 +545,7 @@ fn parser_parses_generate_service_command() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Service {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: false,
                 dry_run: false,
             }
@@ -560,7 +561,7 @@ fn parser_parses_generate_service_alias_command() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Service {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: false,
                 dry_run: false,
             }
@@ -581,7 +582,7 @@ fn parser_parses_generate_model_command() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Model {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: false,
                 dry_run: false,
             }
@@ -627,7 +628,7 @@ fn parser_parses_generate_dto_command() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Dto {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: false,
                 dry_run: false,
             }
@@ -643,7 +644,7 @@ fn parser_parses_g_dto_command() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Dto {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: false,
                 dry_run: false,
             }
@@ -665,7 +666,7 @@ fn parser_parses_generate_dto_command_with_force() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Dto {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: true,
                 dry_run: false,
             }
@@ -687,7 +688,7 @@ fn parser_parses_generate_dto_command_with_dry_run() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Dto {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: false,
                 dry_run: true,
             }
@@ -710,7 +711,7 @@ fn parser_parses_generate_dto_command_with_force_and_dry_run() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Dto {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: true,
                 dry_run: true,
             }
@@ -731,7 +732,7 @@ fn parser_parses_generate_route_command() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Route {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: false,
                 dry_run: false,
             }
@@ -752,7 +753,7 @@ fn parser_parses_g_route_command() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Route {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: false,
                 dry_run: false,
             }
@@ -774,7 +775,7 @@ fn parser_parses_generate_route_command_with_force() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Route {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: true,
                 dry_run: false,
             }
@@ -796,7 +797,7 @@ fn parser_parses_generate_route_command_with_dry_run() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Route {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: false,
                 dry_run: true,
             }
@@ -819,7 +820,7 @@ fn parser_parses_generate_route_command_with_force_and_dry_run() {
         command,
         Command::Generate {
             generator: GeneratorCommand::Route {
-                name: "user".to_string(),
+                name: Name::new("user").unwrap(),
                 force: true,
                 dry_run: true,
             }

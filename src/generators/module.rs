@@ -1,4 +1,5 @@
 use crate::core::generator::Generator;
+use crate::core::naming::Name;
 use crate::core::result::OxgenResult;
 use crate::generators::{
     controller::ControllerGenerator, dto::DtoGenerator, model::ModelGenerator,
@@ -6,13 +7,13 @@ use crate::generators::{
 };
 
 pub struct ModuleGenerator {
-    name: String,
+    name: Name,
     force: bool,
     dry_run: bool,
 }
 
 impl ModuleGenerator {
-    pub fn new(name: String, force: bool, dry_run: bool) -> Self {
+    pub fn new(name: Name, force: bool, dry_run: bool) -> Self {
         Self {
             name,
             force,

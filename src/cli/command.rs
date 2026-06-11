@@ -1,4 +1,5 @@
 use crate::core::generator::Generator;
+use crate::core::naming::Name;
 use crate::core::result::OxgenResult;
 use crate::generators::dto::DtoGenerator;
 use crate::generators::route::RouteGenerator;
@@ -10,7 +11,7 @@ use crate::generators::{
 #[derive(Debug, PartialEq)]
 pub enum Command {
     New {
-        name: String,
+        name: Name,
         force: bool,
         dry_run: bool,
         database: String,
@@ -26,32 +27,32 @@ pub enum Command {
 #[derive(Debug, PartialEq)]
 pub enum GeneratorCommand {
     Module {
-        name: String,
+        name: Name,
         force: bool,
         dry_run: bool,
     },
     Controller {
-        name: String,
+        name: Name,
         force: bool,
         dry_run: bool,
     },
     Service {
-        name: String,
+        name: Name,
         force: bool,
         dry_run: bool,
     },
     Model {
-        name: String,
+        name: Name,
         force: bool,
         dry_run: bool,
     },
     Dto {
-        name: String,
+        name: Name,
         force: bool,
         dry_run: bool,
     },
     Route {
-        name: String,
+        name: Name,
         force: bool,
         dry_run: bool,
     },

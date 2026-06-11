@@ -9,17 +9,18 @@ use crate::core::generator::Generator;
 use crate::core::naming::Name;
 use crate::core::project_detector::ensure_oxgen_project_root;
 use crate::core::result::OxgenResult;
+use crate::core::template::render_template;
 
 static RESOURCE_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/resource");
 
 pub struct RouteGenerator {
-    name: String,
+    name: Name,
     force: bool,
     dry_run: bool,
 }
 
 impl RouteGenerator {
-    pub fn new(name: String, force: bool, dry_run: bool) -> Self {
+    pub fn new(name: Name, force: bool, dry_run: bool) -> Self {
         Self {
             name,
             force,
@@ -57,13 +58,6 @@ impl RouteGenerator {
 
         file.contents_utf8()
             .ok_or_else(|| OxgenError::InvalidTemplatePath(template_path.to_string()))
-    }
-
-    fn render_template(&self, template: &str, name: &Name) -> String {
-        template
-            .replace("{{name}}", &name.snake)
-            .replace("{{resource_name}}", &name.snake)
-            .replace("{{capitalized_resource_name}}", &name.pascal)
     }
 
     fn ensure_routes_directory(&self, routes_directory_path: &Path) -> OxgenResult<()> {
@@ -276,10 +270,8 @@ impl RouteGenerator {
 
 impl Generator for RouteGenerator {
     fn generate(&self) -> OxgenResult<()> {
-        let name = Name::new(&self.name)?;
-
         let routes_directory_path = self.routes_directory_path();
-        let route_path = self.route_path(&name);
+        let route_path = self.route_path(&self.name);
 
         ensure_oxgen_project_root()?;
 
@@ -290,15 +282,15 @@ impl Generator for RouteGenerator {
         }
 
         let template = self.load_template()?;
-        let content = self.render_template(template, &name);
+        let content = render_template(template, &self.name);
 
         self.ensure_routes_directory(&routes_directory_path)?;
 
         let writer = FileWriter::new(self.force, self.dry_run);
         writer.write_file(&route_path, &content)?;
 
-        self.ensure_routes_mod_file(&name)?;
-        self.ensure_main_file_uses_route(&name)?;
+        self.ensure_routes_mod_file(&self.name)?;
+        self.ensure_main_file_uses_route(&self.name)?;
 
         Ok(())
     }

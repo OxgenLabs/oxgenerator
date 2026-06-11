@@ -9,17 +9,18 @@ use crate::core::generator::Generator;
 use crate::core::naming::Name;
 use crate::core::project_detector::ensure_oxgen_project_root;
 use crate::core::result::OxgenResult;
+use crate::core::template::render_template;
 
 static RESOURCE_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/resource");
 
 pub struct ModelGenerator {
-    name: String,
+    name: Name,
     force: bool,
     dry_run: bool,
 }
 
 impl ModelGenerator {
-    pub fn new(name: String, force: bool, dry_run: bool) -> Self {
+    pub fn new(name: Name, force: bool, dry_run: bool) -> Self {
         Self {
             name,
             force,
@@ -52,13 +53,6 @@ impl ModelGenerator {
 
         file.contents_utf8()
             .ok_or_else(|| OxgenError::InvalidTemplatePath(template_path.to_string()))
-    }
-
-    fn render_template(&self, template: &str, name: &Name) -> String {
-        template
-            .replace("{{name}}", &name.snake)
-            .replace("{{resource_name}}", &name.snake)
-            .replace("{{capitalized_resource_name}}", &name.pascal)
     }
 
     fn ensure_module_directory(&self, module_path: &Path) -> OxgenResult<()> {
@@ -195,18 +189,16 @@ impl ModelGenerator {
 
 impl Generator for ModelGenerator {
     fn generate(&self) -> OxgenResult<()> {
-        let name = Name::new(&self.name)?;
-
-        let module_path = self.module_path(&name);
-        let model_path = self.model_path(&name);
+        let module_path = self.module_path(&self.name);
+        let model_path = self.model_path(&self.name);
 
         ensure_oxgen_project_root()?;
         self.ensure_module_directory(&module_path)?;
-        self.ensure_root_modules_mod_file(&name)?;
-        self.ensure_resource_module_mod_file(&name)?;
+        self.ensure_root_modules_mod_file(&self.name)?;
+        self.ensure_resource_module_mod_file(&self.name)?;
 
         let template = self.load_template()?;
-        let content = self.render_template(template, &name);
+        let content = render_template(template, &self.name);
 
         let writer = FileWriter::new(self.force, self.dry_run);
         writer.write_file(model_path, &content)?;

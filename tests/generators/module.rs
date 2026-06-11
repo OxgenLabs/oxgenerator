@@ -4,6 +4,7 @@ use std::path::Path;
 use assert_cmd::Command;
 use oxgen::core::error::OxgenError;
 use oxgen::core::generator::Generator;
+use oxgen::core::naming::Name;
 use oxgen::generators::module::ModuleGenerator;
 use tempfile::tempdir;
 
@@ -23,7 +24,7 @@ fn create_oxgen_project() -> tempfile::TempDir {
 }
 
 fn generate_module(name: &str, force: bool, dry_run: bool) -> Result<(), OxgenError> {
-    ModuleGenerator::new(name.to_string(), force, dry_run).generate()
+    ModuleGenerator::new(Name::new(name).unwrap(), force, dry_run).generate()
 }
 
 fn count_lines_equal(content: &str, expected: &str) -> usize {
@@ -466,7 +467,7 @@ fn module_generator_returns_invalid_name_for_empty_resource_name() {
 
     let result = generate_module("", false, false);
 
-    assert!(matches!(result, Err(OxgenError::InvalidName(_))));
+    assert!(matches!(result, Err(OxgenError::MissingArgument(_))));
 }
 
 #[test]

@@ -4,6 +4,7 @@ use std::path::Path;
 use assert_cmd::Command;
 use oxgen::core::error::OxgenError;
 use oxgen::core::generator::Generator;
+use oxgen::core::naming::Name;
 use oxgen::generators::route::RouteGenerator;
 use tempfile::tempdir;
 
@@ -32,7 +33,7 @@ fn route_generator_creates_route_file() {
     let project = temp_dir.path().join("test-api");
     let _guard = CurrentDirGuard::change_to(&project);
 
-    let generator = RouteGenerator::new("user".to_string(), false, false);
+    let generator = RouteGenerator::new(Name::new("user").unwrap(), false, false);
 
     generator.generate().unwrap();
 
@@ -58,7 +59,7 @@ fn route_generator_replaces_template_placeholders() {
     let project = temp_dir.path().join("test-api");
     let _guard = CurrentDirGuard::change_to(&project);
 
-    let generator = RouteGenerator::new("pricing".to_string(), false, false);
+    let generator = RouteGenerator::new(Name::new("pricing").unwrap(), false, false);
 
     generator.generate().unwrap();
 
@@ -84,7 +85,7 @@ fn route_generator_updates_routes_mod_file() {
     let project = temp_dir.path().join("test-api");
     let _guard = CurrentDirGuard::change_to(&project);
 
-    let generator = RouteGenerator::new("user".to_string(), false, false);
+    let generator = RouteGenerator::new(Name::new("user").unwrap(), false, false);
 
     generator.generate().unwrap();
 
@@ -100,7 +101,7 @@ fn route_generator_updates_main_file() {
     let project = temp_dir.path().join("test-api");
     let _guard = CurrentDirGuard::change_to(&project);
 
-    let generator = RouteGenerator::new("user".to_string(), false, false);
+    let generator = RouteGenerator::new(Name::new("user").unwrap(), false, false);
 
     generator.generate().unwrap();
 
@@ -124,7 +125,7 @@ fn route_generator_returns_file_already_exists_without_touching_main_or_routes_m
     let main_before = fs::read_to_string(project.join("src/main.rs")).unwrap();
     let routes_mod_before = fs::read_to_string(project.join("src/routes/mod.rs")).unwrap();
 
-    let generator = RouteGenerator::new("user".to_string(), false, false);
+    let generator = RouteGenerator::new(Name::new("user").unwrap(), false, false);
 
     let result = generator.generate();
 
@@ -150,7 +151,7 @@ fn route_generator_force_overwrites_existing_route_file() {
 
     fs::write(project.join("src/routes/user.rs"), "existing route").unwrap();
 
-    let generator = RouteGenerator::new("user".to_string(), true, false);
+    let generator = RouteGenerator::new(Name::new("user").unwrap(), true, false);
 
     generator.generate().unwrap();
 
@@ -166,11 +167,11 @@ fn route_generator_force_does_not_duplicate_main_import_or_merge() {
     let project = temp_dir.path().join("test-api");
     let _guard = CurrentDirGuard::change_to(&project);
 
-    let generator = RouteGenerator::new("user".to_string(), false, false);
+    let generator = RouteGenerator::new(Name::new("user").unwrap(), false, false);
 
     generator.generate().unwrap();
 
-    let forced_generator = RouteGenerator::new("user".to_string(), true, false);
+    let forced_generator = RouteGenerator::new(Name::new("user").unwrap(), true, false);
 
     forced_generator.generate().unwrap();
     forced_generator.generate().unwrap();
@@ -192,7 +193,7 @@ fn route_generator_dry_run_does_not_create_or_update_files() {
     let main_before = fs::read_to_string(project.join("src/main.rs")).unwrap();
     let routes_mod_before = fs::read_to_string(project.join("src/routes/mod.rs")).unwrap();
 
-    let generator = RouteGenerator::new("user".to_string(), false, true);
+    let generator = RouteGenerator::new(Name::new("user").unwrap(), false, true);
 
     generator.generate().unwrap();
 
@@ -211,7 +212,7 @@ fn route_generator_supports_kebab_case_resource_name() {
     let project = temp_dir.path().join("test-api");
     let _guard = CurrentDirGuard::change_to(&project);
 
-    let generator = RouteGenerator::new("user-profile".to_string(), false, false);
+    let generator = RouteGenerator::new(Name::new("user-profile").unwrap(), false, false);
 
     generator.generate().unwrap();
 
@@ -240,7 +241,7 @@ fn route_generator_returns_invalid_name_for_empty_resource_name() {
     let project = temp_dir.path().join("test-api");
     let _guard = CurrentDirGuard::change_to(&project);
 
-    let generator = RouteGenerator::new("".to_string(), false, false);
+    let generator = RouteGenerator::new(Name::new("").unwrap(), false, false);
 
     let result = generator.generate();
 
@@ -253,7 +254,7 @@ fn route_generator_returns_invalid_name_for_invalid_resource_name() {
     let project = temp_dir.path().join("test-api");
     let _guard = CurrentDirGuard::change_to(&project);
 
-    let generator = RouteGenerator::new("user/profile".to_string(), false, false);
+    let generator = RouteGenerator::new(Name::new("user/profile").unwrap(), false, false);
 
     let result = generator.generate();
 
@@ -265,7 +266,7 @@ fn route_generator_fails_outside_rust_project() {
     let temp_dir = tempfile::tempdir().unwrap();
     let _guard = CurrentDirGuard::change_to(temp_dir.path());
 
-    let generator = RouteGenerator::new("user".to_string(), false, false);
+    let generator = RouteGenerator::new(Name::new("user").unwrap(), false, false);
 
     let result = generator.generate();
 
@@ -310,7 +311,7 @@ fn main() {}
 
     let _guard = CurrentDirGuard::change_to(root);
 
-    let generator = RouteGenerator::new("user".to_string(), false, false);
+    let generator = RouteGenerator::new(Name::new("user").unwrap(), false, false);
 
     let result = generator.generate();
 
@@ -352,7 +353,7 @@ edition = "2024"
 
     let _guard = CurrentDirGuard::change_to(root);
 
-    let generator = RouteGenerator::new("user".to_string(), false, false);
+    let generator = RouteGenerator::new(Name::new("user").unwrap(), false, false);
 
     let result = generator.generate();
 
