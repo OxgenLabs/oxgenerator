@@ -54,15 +54,9 @@ It is designed for developers who want:
 
 ### Planned
 
-- Generate modules.
-- Generate controllers.
-- Generate services.
-- Generate models.
-- Generate routes.
-- Generate DTOs or payload structs.
-- Generate error files per resource.
-- Support short aliases such as `g`, `res`, `ctrl` and `svc`.
-- Support databases.
+- Support MongoDB.
+- Support PostgreSQL.
+- Generate Auth module using JWT.
 
 ## Installation
 
@@ -190,9 +184,7 @@ Generate a new file or group of files inside an existing project:
 oxgen generate <generator> <name>
 ```
 
-> Note: the generator system is part of the roadmap and may not be fully available yet depending on the current version.
-
-### Planned generators
+### Current generators
 
 ```bash
 oxgen generate module user
@@ -239,8 +231,6 @@ Templates can use placeholders such as:
 ```text
 {{project_name}}
 {{crate_name}}
-__PROJECT_NAME__
-__CRATE_NAME__
 ```
 
 These placeholders are replaced during generation.
@@ -301,7 +291,15 @@ The project should stay lightweight. The generator should focus on commands that
 - [ ] Add examples showing how to create and extend a generated project.
 - [ ] Investigate whether project dependencies should use fixed versions or the latest compatible versions.
 - [ ] Support databases.
-
+    - [ ] MongoDB
+        - [x] Create new project with MongoDB.
+        - [ ] Generate full modules with MongoDB.
+        - [ ] Generate controllers with MongoDB.
+        - [ ] Generate services with MongoDB.
+        - [ ] Generate models with MongoDB.
+        - [ ] Generate routes with MongoDB.
+        - [ ] Generate DTOs or payload structs with MongoDB.
+    - [ ] PostgreSQL
 ## Development
 
 Clone the repository:

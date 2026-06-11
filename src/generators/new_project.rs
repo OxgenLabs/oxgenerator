@@ -1,86 +1,43 @@
+use include_dir::{Dir, DirEntry, include_dir};
+use inquire::Select;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use include_dir::{Dir, DirEntry, include_dir};
-
 use crate::core::error::OxgenError;
 use crate::core::generator::Generator;
+use crate::core::naming::Name;
 use crate::core::result::OxgenResult;
+use crate::core::template::render_template;
 
-static PROJECT_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/project");
-const BUILT_IN_LIBRARY: &[&str] = &["test"];
-const CONFUSING_PACKAGE_NAMES: &[&str] = &["std", "core", "alloc", "proc_macro"];
-const RUST_KEYWORDS: &[&str] = &[
-    "as", "async", "await", "break", "const", "continue", "crate", "dyn", "else", "enum", "extern",
-    "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub",
-    "ref", "return", "self", "Self", "static", "struct", "super", "trait", "true", "type",
-    "unsafe", "use", "where", "while", "abstract", "become", "box", "do", "final", "gen", "macro",
-    "override", "priv", "try", "typeof", "unsized", "virtual", "yield",
-];
+static MOCK_PROJECT_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/project/mock");
+
+static MONGODB_PROJECT_TEMPLATES: Dir<'_> =
+    include_dir!("$CARGO_MANIFEST_DIR/templates/project/mongodb");
 
 pub struct NewProjectGenerator {
-    name: String,
+    name: Name,
     force: bool,
     dry_run: bool,
+    database: String,
 }
 
 impl NewProjectGenerator {
-    pub fn new(name: String, force: bool, dry_run: bool) -> Self {
+    pub fn new(name: Name, force: bool, dry_run: bool, database: String) -> Self {
         Self {
             name,
             force,
             dry_run,
+            database,
         }
     }
 
     fn project_path(&self) -> PathBuf {
-        PathBuf::from(&self.name)
+        PathBuf::from(&self.name.raw)
     }
 
-    fn validate_package_name(&self) -> OxgenResult<()> {
-        if self.name.trim().is_empty() {
-            return Err(OxgenError::InvalidPackageName(self.name.clone()));
-        }
-
-        let Some(first_char) = self.name.chars().next() else {
-            return Err(OxgenError::InvalidPackageName(self.name.clone()));
-        };
-
-        if !first_char.is_ascii_alphabetic() {
-            return Err(OxgenError::InvalidPackageName(self.name.clone()));
-        }
-
-        let is_valid = self
-            .name
-            .chars()
-            .all(|char| char.is_ascii_alphanumeric() || char == '-' || char == '_');
-
-        if !is_valid {
-            return Err(OxgenError::InvalidPackageName(self.name.clone()));
-        }
-
-        if BUILT_IN_LIBRARY.contains(&self.name.as_str()) {
-            return Err(OxgenError::RustBuiltInPackageName(self.name.clone()));
-        }
-
-        if CONFUSING_PACKAGE_NAMES.contains(&self.name.as_str()) {
-            return Err(OxgenError::ConfusingPackageName(self.name.clone()));
-        }
-
-        if RUST_KEYWORDS.contains(&self.name.as_str()) {
-            return Err(OxgenError::RustKeywordPackageName(self.name.clone()));
-        }
-        Ok(())
-    }
-
-    fn crate_name(&self) -> String {
-        self.name.replace('-', "_")
-    }
-
-    fn collect_template_files(&self) -> OxgenResult<Vec<PathBuf>> {
+    fn collect_template_files(&self, project_templates: &Dir<'_>) -> OxgenResult<Vec<PathBuf>> {
         let mut files = Vec::new();
-
-        Self::collect_template_files_recursive(&PROJECT_TEMPLATES, &mut files);
+        Self::collect_template_files_recursive(project_templates, &mut files);
 
         Ok(files)
     }
@@ -108,16 +65,13 @@ impl NewProjectGenerator {
         template_path.to_path_buf()
     }
 
-    fn render_template(&self, content: &str) -> String {
-        content
-            .replace("{{project_name}}", &self.name)
-            .replace("{{crate_name}}", &self.crate_name())
-            .replace("__PROJECT_NAME__", &self.name)
-            .replace("__CRATE_NAME__", &self.crate_name())
-    }
-
-    fn write_template_file(&self, project_path: &Path, template_path: &Path) -> OxgenResult<()> {
-        let file = PROJECT_TEMPLATES
+    fn write_template_file(
+        &self,
+        templates_dir: &Dir<'_>,
+        project_path: &Path,
+        template_path: &Path,
+    ) -> OxgenResult<()> {
+        let file = templates_dir
             .get_file(template_path)
             .ok_or_else(|| OxgenError::InvalidTemplatePath(template_path.display().to_string()))?;
 
@@ -130,7 +84,7 @@ impl NewProjectGenerator {
 
         match file.contents_utf8() {
             Some(content) => {
-                let rendered_content = self.render_template(content);
+                let rendered_content = render_template(content, &self.name);
                 fs::write(final_output_path, rendered_content)?;
             }
             None => {
@@ -141,11 +95,11 @@ impl NewProjectGenerator {
         Ok(())
     }
 
-    fn print_dry_run(&self, project_path: &Path) -> OxgenResult<()> {
-        println!("dry run: project `{}` would be created", self.name);
+    fn print_dry_run(&self, templates_dir: &Dir<'_>, project_path: &Path) -> OxgenResult<()> {
+        println!("dry run: project `{}` would be created", self.name.raw);
         println!();
 
-        for template_path in self.collect_template_files()? {
+        for template_path in self.collect_template_files(templates_dir)? {
             let output_path = self.output_path_from_template_path(&template_path);
             println!("create {}", project_path.join(output_path).display());
         }
@@ -192,16 +146,40 @@ impl NewProjectGenerator {
             true
         }
     }
+
+    fn ask_db_engine(&self) -> OxgenResult<&Dir<'_>> {
+        let options = vec![
+            "Use the mock database engine",
+            "Use the MongoDB database engine",
+        ];
+
+        let choice = Select::new("Select a database engine:", options).prompt();
+
+        match choice {
+            Ok("Use the mock database engine") => Ok(&MOCK_PROJECT_TEMPLATES),
+            Ok("Use the MongoDB database engine") => Ok(&MONGODB_PROJECT_TEMPLATES),
+            Ok(_) => Err(OxgenError::UnknownDatabase),
+            Err(error) => Err(OxgenError::InquireMenuInteractionFailed(error.to_string())),
+        }
+    }
 }
 
 impl Generator for NewProjectGenerator {
     fn generate(&self) -> OxgenResult<()> {
-        self.validate_package_name()?;
+        // if self.database is"mongo" we use MONGODB_PROJECT_TEMPLATES
+        // if self.database is "mock" we use MOCK_PROJECT_TEMPLATES
+        // if self.database is "none" we ask db engine
+        let templates_dir: &Dir<'_> = match self.database.as_str() {
+            "mongo" | "mongodb" => &MONGODB_PROJECT_TEMPLATES,
+            "mock" => &MOCK_PROJECT_TEMPLATES,
+            "none" => self.ask_db_engine()?,
+            _ => return Err(OxgenError::UnknownDatabase),
+        };
 
         let project_path = self.project_path();
 
         if self.dry_run {
-            return self.print_dry_run(&project_path);
+            return self.print_dry_run(templates_dir, &project_path);
         }
 
         if project_path.exists() {
@@ -216,8 +194,8 @@ impl Generator for NewProjectGenerator {
 
         fs::create_dir_all(&project_path)?;
 
-        for template_path in self.collect_template_files()? {
-            self.write_template_file(&project_path, &template_path)?;
+        for template_path in self.collect_template_files(templates_dir)? {
+            self.write_template_file(templates_dir, &project_path, &template_path)?;
         }
 
         if self.git_available() {
@@ -226,10 +204,13 @@ impl Generator for NewProjectGenerator {
 
         self.format_generated_project(&project_path)?;
 
-        println!("created project `{}`", self.name);
+        println!("created project `{}`", self.name.raw);
         println!();
         println!("next steps:");
-        println!("  cd {}", self.name);
+        println!("  cd {}", self.name.raw);
+        if std::ptr::eq(templates_dir, &MONGODB_PROJECT_TEMPLATES) {
+            println!("  change MONGO_URI in .env")
+        }
         println!("  cargo run");
 
         Ok(())

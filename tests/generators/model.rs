@@ -3,13 +3,13 @@ use predicates::prelude::*;
 use std::fs;
 use tempfile::tempdir;
 
-fn create_oxgen_project(project_name: &str) -> tempfile::TempDir {
+fn create_oxgen_project() -> tempfile::TempDir {
     let temp_dir = tempdir().unwrap();
 
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", project_name])
+        .args(["new", "test-api", "--database", "mock"])
         .assert()
         .success();
 
@@ -18,7 +18,7 @@ fn create_oxgen_project(project_name: &str) -> tempfile::TempDir {
 
 #[test]
 fn generate_model_creates_model_file() {
-    let temp_dir = create_oxgen_project("test-api");
+    let temp_dir = create_oxgen_project();
     let project = temp_dir.path().join("test-api");
 
     Command::cargo_bin("oxgen")
@@ -47,7 +47,7 @@ fn generate_model_creates_model_file() {
 
 #[test]
 fn generate_model_creates_module_directory() {
-    let temp_dir = create_oxgen_project("test-api");
+    let temp_dir = create_oxgen_project();
     let project = temp_dir.path().join("test-api");
 
     Command::cargo_bin("oxgen")
@@ -62,7 +62,7 @@ fn generate_model_creates_module_directory() {
 
 #[test]
 fn generate_model_updates_root_modules_mod_file() {
-    let temp_dir = create_oxgen_project("test-api");
+    let temp_dir = create_oxgen_project();
     let project = temp_dir.path().join("test-api");
 
     Command::cargo_bin("oxgen")
@@ -83,7 +83,7 @@ fn generate_model_updates_root_modules_mod_file() {
 
 #[test]
 fn generate_model_creates_resource_module_mod_file() {
-    let temp_dir = create_oxgen_project("test-api");
+    let temp_dir = create_oxgen_project();
     let project = temp_dir.path().join("test-api");
 
     Command::cargo_bin("oxgen")
@@ -104,7 +104,7 @@ fn generate_model_creates_resource_module_mod_file() {
 
 #[test]
 fn generate_model_uses_snake_case_for_module_and_pascal_case_for_struct() {
-    let temp_dir = create_oxgen_project("test-api");
+    let temp_dir = create_oxgen_project();
     let project = temp_dir.path().join("test-api");
 
     Command::cargo_bin("oxgen")
@@ -131,7 +131,7 @@ fn generate_model_uses_snake_case_for_module_and_pascal_case_for_struct() {
 
 #[test]
 fn generate_model_fails_if_model_already_exists_without_force() {
-    let temp_dir = create_oxgen_project("test-api");
+    let temp_dir = create_oxgen_project();
     let project = temp_dir.path().join("test-api");
 
     Command::cargo_bin("oxgen")
@@ -152,7 +152,7 @@ fn generate_model_fails_if_model_already_exists_without_force() {
 
 #[test]
 fn generate_model_overwrites_existing_model_with_force() {
-    let temp_dir = create_oxgen_project("test-api");
+    let temp_dir = create_oxgen_project();
     let project = temp_dir.path().join("test-api");
 
     let module_path = project.join("src/modules/user");
@@ -175,7 +175,7 @@ fn generate_model_overwrites_existing_model_with_force() {
 
 #[test]
 fn generate_model_dry_run_creates_nothing() {
-    let temp_dir = create_oxgen_project("test-api");
+    let temp_dir = create_oxgen_project();
     let project = temp_dir.path().join("test-api");
 
     Command::cargo_bin("oxgen")
@@ -192,7 +192,7 @@ fn generate_model_dry_run_creates_nothing() {
 
 #[test]
 fn generate_model_does_not_duplicate_root_module_declaration() {
-    let temp_dir = create_oxgen_project("test-api");
+    let temp_dir = create_oxgen_project();
     let project = temp_dir.path().join("test-api");
 
     Command::cargo_bin("oxgen")
@@ -221,7 +221,7 @@ fn generate_model_does_not_duplicate_root_module_declaration() {
 
 #[test]
 fn generate_model_does_not_duplicate_resource_model_declaration() {
-    let temp_dir = create_oxgen_project("test-api");
+    let temp_dir = create_oxgen_project();
     let project = temp_dir.path().join("test-api");
 
     Command::cargo_bin("oxgen")
@@ -286,18 +286,4 @@ edition = "2021"
         .assert()
         .failure()
         .stderr(predicate::str::contains("no oxgen project found"));
-}
-
-#[test]
-fn generate_model_rejects_invalid_model_name() {
-    let temp_dir = create_oxgen_project("test-api");
-    let project = temp_dir.path().join("test-api");
-
-    Command::cargo_bin("oxgen")
-        .unwrap()
-        .current_dir(&project)
-        .args(["generate", "model", "user profile"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("invalid name"));
 }

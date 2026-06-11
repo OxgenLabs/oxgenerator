@@ -1,1 +1,2 @@
 generator = "oxgen"
+database = "mock"

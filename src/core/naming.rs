@@ -1,7 +1,17 @@
 use crate::core::error::OxgenError;
 use crate::core::result::OxgenResult;
 
-#[derive(Debug, Clone)]
+const BUILT_IN_LIBRARY: &[&str] = &["test"];
+const CONFUSING_PACKAGE_NAMES: &[&str] = &["std", "core", "alloc", "proc_macro"];
+const RUST_KEYWORDS: &[&str] = &[
+    "as", "async", "await", "break", "const", "continue", "crate", "dyn", "else", "enum", "extern",
+    "false", "fn", "for", "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub",
+    "ref", "return", "self", "Self", "static", "struct", "super", "trait", "true", "type",
+    "unsafe", "use", "where", "while", "abstract", "become", "box", "do", "final", "gen", "macro",
+    "override", "priv", "try", "typeof", "unsized", "virtual", "yield",
+];
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Name {
     pub raw: String,
     pub snake: String,
@@ -32,18 +42,44 @@ impl Name {
     }
 }
 
-fn validate_name(input: &str) -> OxgenResult<()> {
+pub fn validate_name(input: &str) -> OxgenResult<()> {
     if input.trim().is_empty() {
         return Err(OxgenError::InvalidName(input.to_string()));
     }
 
-    if input
-        .chars()
-        .any(|c| !(c.is_ascii_alphanumeric() || c == '_' || c == '-'))
-    {
+    let Some(first_char) = input.chars().next() else {
+        return Err(OxgenError::InvalidName(input.to_string()));
+    };
+
+    if !first_char.is_ascii_alphabetic() {
         return Err(OxgenError::InvalidName(input.to_string()));
     }
 
+    if input.chars().any(|char| char.is_uppercase()) {
+        return Err(OxgenError::InvalidName(input.to_string()));
+    }
+
+    let is_valid = input
+        .chars()
+        .all(|char| char.is_ascii_alphanumeric() || char == '-' || char == '_');
+
+    if !is_valid {
+        return Err(OxgenError::InvalidName(input.to_string()));
+    }
+
+    let input = input.to_lowercase();
+
+    if BUILT_IN_LIBRARY.contains(&input.as_str()) {
+        return Err(OxgenError::RustBuiltInPackageName(input.to_string()));
+    }
+
+    if CONFUSING_PACKAGE_NAMES.contains(&input.as_str()) {
+        return Err(OxgenError::ConfusingPackageName(input.to_string()));
+    }
+
+    if RUST_KEYWORDS.contains(&input.as_str()) {
+        return Err(OxgenError::RustKeywordPackageName(input.to_string()));
+    }
     Ok(())
 }
 

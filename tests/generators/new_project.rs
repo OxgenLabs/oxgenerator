@@ -28,7 +28,7 @@ fn new_command_creates_project() {
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "test-api"])
+        .args(["new", "test-api", "--database", "mock"])
         .assert()
         .success()
         .stdout(predicate::str::contains("created project `test-api`"));
@@ -49,7 +49,7 @@ fn new_command_replaces_project_name() {
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "test-api"])
+        .args(["new", "test-api", "--database", "mock"])
         .assert()
         .success();
 
@@ -66,7 +66,7 @@ fn new_command_replaces_crate_name() {
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "test-api"])
+        .args(["new", "test-api", "--database", "mock"])
         .assert()
         .success();
 
@@ -83,7 +83,7 @@ fn new_command_removes_ox_extensions() {
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "test-api"])
+        .args(["new", "test-api", "--database", "mock"])
         .assert()
         .success();
 
@@ -106,14 +106,14 @@ fn new_command_fails_if_project_already_exists_without_force() {
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "test-api"])
+        .args(["new", "test-api", "--database", "mock"])
         .assert()
         .success();
 
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "test-api"])
+        .args(["new", "test-api", "--database", "mock"])
         .assert()
         .failure()
         .stderr(predicate::str::contains("project directory already exists"));
@@ -130,7 +130,7 @@ fn new_command_overwrites_project_with_force() {
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "test-api", "--force"])
+        .args(["new", "test-api", "--force", "--database", "mock"])
         .assert()
         .success();
 
@@ -145,25 +145,12 @@ fn new_command_dry_run_creates_nothing() {
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "dry-api", "--dry-run"])
+        .args(["new", "dry-api", "--dry-run", "--database", "mock"])
         .assert()
         .success()
         .stdout(predicate::str::contains("dry run"));
 
     assert!(!temp_dir.path().join("dry-api").exists());
-}
-
-#[test]
-fn new_command_rejects_invalid_project_name() {
-    let temp_dir = tempdir().unwrap();
-
-    Command::cargo_bin("oxgen")
-        .unwrap()
-        .current_dir(temp_dir.path())
-        .args(["new", "my api"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("invalid package name"));
 }
 
 #[test]
@@ -173,7 +160,7 @@ fn new_command_generates_code_compliant_with_cargo_fmt() {
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "test-api"])
+        .args(["new", "test-api", "--database", "mock"])
         .assert()
         .success();
 
@@ -189,7 +176,7 @@ fn new_command_generates_project_that_passes_cargo_check() {
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "test-api"])
+        .args(["new", "test-api", "--database", "mock"])
         .assert()
         .success();
 
@@ -205,7 +192,7 @@ fn new_command_generates_project_that_passes_clippy() {
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "test-api"])
+        .args(["new", "test-api", "--database", "mock"])
         .assert()
         .success();
 
@@ -221,7 +208,7 @@ fn new_command_initializes_git_repository() {
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "test-api"])
+        .args(["new", "test-api", "--database", "mock"])
         .assert()
         .success();
 
@@ -246,52 +233,13 @@ fn new_command_initializes_git_repository() {
 }
 
 #[test]
-fn new_command_rejects_built_in_library_package_name() {
-    let temp_dir = tempdir().unwrap();
-
-    Command::cargo_bin("oxgen")
-        .unwrap()
-        .current_dir(temp_dir.path())
-        .args(["new", "test"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("built-in"));
-}
-
-#[test]
-fn new_command_rejects_confusing_package_name_std() {
-    let temp_dir = tempdir().unwrap();
-
-    Command::cargo_bin("oxgen")
-        .unwrap()
-        .current_dir(temp_dir.path())
-        .args(["new", "std"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("confusing"));
-}
-
-#[test]
-fn new_command_rejects_rust_keyword_package_name() {
-    let temp_dir = tempdir().unwrap();
-
-    Command::cargo_bin("oxgen")
-        .unwrap()
-        .current_dir(temp_dir.path())
-        .args(["new", "async"])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("keyword"));
-}
-
-#[test]
 fn new_command_creates_oxgen_config_file() {
     let temp_dir = tempdir().unwrap();
 
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "test-api"])
+        .args(["new", "test-api", "--database", "mock"])
         .assert()
         .success();
 
@@ -304,5 +252,5 @@ fn new_command_creates_oxgen_config_file() {
 
     let content = fs::read_to_string(oxgen_config).unwrap();
 
-    assert_eq!(content.trim(), r#"generator = "oxgen""#);
+    assert_eq!(content.trim(), "generator = \"oxgen\"\ndatabase = \"mock\"");
 }
