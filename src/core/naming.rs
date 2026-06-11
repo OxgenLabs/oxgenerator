@@ -55,6 +55,10 @@ pub fn validate_name(input: &str) -> OxgenResult<()> {
         return Err(OxgenError::InvalidName(input.to_string()));
     }
 
+    if input.chars().any(|char| char.is_uppercase()) {
+        return Err(OxgenError::InvalidName(input.to_string()));
+    }
+
     let is_valid = input
         .chars()
         .all(|char| char.is_ascii_alphanumeric() || char == '-' || char == '_');
@@ -63,15 +67,17 @@ pub fn validate_name(input: &str) -> OxgenResult<()> {
         return Err(OxgenError::InvalidName(input.to_string()));
     }
 
-    if BUILT_IN_LIBRARY.contains(&input) {
+    let input = input.to_lowercase();
+
+    if BUILT_IN_LIBRARY.contains(&input.as_str()) {
         return Err(OxgenError::RustBuiltInPackageName(input.to_string()));
     }
 
-    if CONFUSING_PACKAGE_NAMES.contains(&input) {
+    if CONFUSING_PACKAGE_NAMES.contains(&input.as_str()) {
         return Err(OxgenError::ConfusingPackageName(input.to_string()));
     }
 
-    if RUST_KEYWORDS.contains(&input) {
+    if RUST_KEYWORDS.contains(&input.as_str()) {
         return Err(OxgenError::RustKeywordPackageName(input.to_string()));
     }
     Ok(())

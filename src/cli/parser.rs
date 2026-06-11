@@ -21,25 +21,47 @@ pub fn parse_args(args: Vec<String>) -> OxgenResult<Command> {
 }
 
 fn parse_new_command(args: &[String]) -> OxgenResult<Command> {
-    let name_input = args
-        .first()
-        .ok_or_else(|| OxgenError::MissingArgument("project name".to_string()))?
-        .clone();
-
-    if name_input.starts_with("-") {
-        return Err(OxgenError::MissingArgument("project name".to_string()));
-    }
-
-    let name = Name::new(&name_input)?;
-
     let force = has_flag(args, "--force");
     let dry_run = has_flag(args, "--dry-run");
 
-    let database = if has_flag(args, "--database") {
-        parse_database_engine(args)?
-    } else {
-        "none".to_string()
-    };
+    let mut name_input: Option<String> = None;
+    let mut database = "none".to_string();
+
+    let mut index = 0;
+
+    while index < args.len() {
+        match args[index].as_str() {
+            "--force" | "--dry-run" => {
+                index += 1;
+            }
+
+            "--database" => {
+                let value = args
+                    .get(index + 1)
+                    .filter(|value| !value.starts_with('-'))
+                    .ok_or_else(|| OxgenError::MissingArgument("database".to_string()))?;
+
+                database = normalize_database(value)?;
+                index += 2;
+            }
+
+            arg if arg.starts_with('-') => {
+                index += 1;
+            }
+
+            arg => {
+                if name_input.is_none() {
+                    name_input = Some(arg.to_string());
+                }
+
+                index += 1;
+            }
+        }
+    }
+
+    let name_input =
+        name_input.ok_or_else(|| OxgenError::MissingArgument("project name".to_string()))?;
+    let name = Name::new(&name_input)?;
 
     Ok(Command::New {
         name,
@@ -49,23 +71,13 @@ fn parse_new_command(args: &[String]) -> OxgenResult<Command> {
     })
 }
 
-fn parse_database_engine(args: &[String]) -> OxgenResult<String> {
-    let database = get_required_next_arg(args, "--database", "database engine name")?;
-
+fn normalize_database(database: &str) -> OxgenResult<String> {
     match database.trim().to_lowercase().as_str() {
-        "mongo" | "mongodb" => Ok("mongo".to_string()),
+        "none" => Ok("none".to_string()),
         "mock" => Ok("mock".to_string()),
+        "mongo" | "mongodb" => Ok("mongo".to_string()),
         _ => Err(OxgenError::UnknownDatabase),
     }
-}
-
-fn get_required_next_arg(args: &[String], arg: &str, argument_name: &str) -> OxgenResult<String> {
-    args.iter()
-        .position(|current_arg| current_arg == arg)
-        .and_then(|index| args.get(index + 1))
-        .filter(|value| !value.starts_with('-'))
-        .cloned()
-        .ok_or_else(|| OxgenError::MissingArgument(argument_name.to_string()))
 }
 
 fn parse_generate_command(args: &[String]) -> OxgenResult<Command> {

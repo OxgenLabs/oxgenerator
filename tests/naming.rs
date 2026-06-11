@@ -32,16 +32,6 @@ fn name_accepts_snake_case_name() {
 }
 
 #[test]
-fn name_accepts_mixed_case_name_and_normalizes_it() {
-    let name = Name::new("UserProfile").unwrap();
-
-    assert_eq!(name.raw, "UserProfile");
-    assert_eq!(name.snake, "userprofile");
-    assert_eq!(name.kebab, "userprofile");
-    assert_eq!(name.pascal, "Userprofile");
-}
-
-#[test]
 fn name_accepts_name_with_numbers() {
     let name = Name::new("user2-profile").unwrap();
 
@@ -61,6 +51,20 @@ fn name_rejects_empty_name() {
 #[test]
 fn name_rejects_blank_name() {
     let result = Name::new("   ");
+
+    assert!(matches!(result, Err(OxgenError::InvalidName(_))));
+}
+
+#[test]
+fn name_rejects_pascal_case_name() {
+    let result = Name::new("UserProfile");
+
+    assert!(matches!(result, Err(OxgenError::InvalidName(_))));
+}
+
+#[test]
+fn name_rejects_camel_case_name() {
+    let result = Name::new("userProfile");
 
     assert!(matches!(result, Err(OxgenError::InvalidName(_))));
 }
@@ -180,13 +184,6 @@ fn name_rejects_rust_keyword_struct() {
 #[test]
 fn name_rejects_rust_keyword_self_lowercase() {
     let result = Name::new("self");
-
-    assert!(matches!(result, Err(OxgenError::RustKeywordPackageName(_))));
-}
-
-#[test]
-fn name_rejects_rust_keyword_self_uppercase() {
-    let result = Name::new("Self");
 
     assert!(matches!(result, Err(OxgenError::RustKeywordPackageName(_))));
 }

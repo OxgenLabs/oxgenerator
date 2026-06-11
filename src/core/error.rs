@@ -64,7 +64,7 @@ impl fmt::Display for OxgenError {
             OxgenError::InvalidName(name) => {
                 write!(
                     f,
-                    "invalid name `{}`\n\nhelp: names should use letters, numbers, `-` or `_`, and should not be empty.",
+                    "invalid name `{}`\n\nhelp: names should use lowercase letters, numbers, `-` or `_`, and should not be empty.",
                     name
                 )
             }
@@ -187,7 +187,7 @@ impl fmt::Display for OxgenError {
             OxgenError::UnknownDatabase => {
                 write!(
                     f,
-                    "unknown database selected: make sure to choose an available database engine.\n\nRun `oxgen --help` to see available database engine."
+                    "unknown database engine\n\nhelp: choose one of: `mock`, `mongo`.\n\nRun `oxgen help` to see usage and options."
                 )
             }
         }

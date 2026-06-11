@@ -208,7 +208,7 @@ impl Generator for NewProjectGenerator {
         println!();
         println!("next steps:");
         println!("  cd {}", self.name.raw);
-        if templates_dir == &MONGODB_PROJECT_TEMPLATES {
+        if std::ptr::eq(templates_dir, &MONGODB_PROJECT_TEMPLATES) {
             println!("  change MONGO_URI in .env")
         }
         println!("  cargo run");
