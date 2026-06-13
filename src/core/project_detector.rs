@@ -1,3 +1,4 @@
+use std::io::BufRead;
 use std::path::Path;
 
 use crate::core::error::OxgenError;
@@ -28,4 +29,39 @@ pub fn ensure_oxgen_project_root() -> OxgenResult<()> {
     }
 
     Ok(())
+}
+
+pub fn which_db_engine() -> OxgenResult<String> {
+    ensure_rust_project_root()?;
+
+    let oxgen_config =
+        std::fs::File::open(".oxgen/config.toml").map_err(|_| OxgenError::OxgenProjectNotFound)?;
+
+    let reader = std::io::BufReader::new(oxgen_config);
+
+    for line in reader.lines() {
+        let line = line?;
+        let line = line.trim();
+
+        if line.starts_with('#') || line.is_empty() {
+            continue;
+        }
+
+        let Some((key, value)) = line.split_once('=') else {
+            continue;
+        };
+
+        if key.trim() != "database" {
+            continue;
+        }
+
+        let value = value.trim().trim_matches('"');
+
+        return match value {
+            "none" | "mock" | "mongodb" => Ok(value.to_string()),
+            _ => Err(OxgenError::UnknownDatabase),
+        };
+    }
+
+    Ok("mock".to_string())
 }

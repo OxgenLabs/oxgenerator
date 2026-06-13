@@ -22,7 +22,13 @@ impl ModuleGenerator {
     }
 
     fn generate_model(&self) -> OxgenResult<()> {
-        ModelGenerator::new(self.name.clone(), self.force, self.dry_run).generate()
+        ModelGenerator::new(
+            self.name.clone(),
+            self.force,
+            self.dry_run,
+            "mock".to_string(),
+        )
+        .generate()
     }
 
     fn generate_dto(&self) -> OxgenResult<()> {

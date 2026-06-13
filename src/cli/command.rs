@@ -45,6 +45,7 @@ pub enum GeneratorCommand {
         name: Name,
         force: bool,
         dry_run: bool,
+        database: String,
     },
     Dto {
         name: Name,
@@ -91,7 +92,8 @@ impl Command {
                     name,
                     force,
                     dry_run,
-                } => ModelGenerator::new(name, force, dry_run).generate(),
+                    database,
+                } => ModelGenerator::new(name, force, dry_run, database).generate(),
                 GeneratorCommand::Dto {
                     name,
                     force,

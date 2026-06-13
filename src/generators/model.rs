@@ -9,22 +9,28 @@ use crate::core::generator::Generator;
 use crate::core::naming::Name;
 use crate::core::project_detector::ensure_oxgen_project_root;
 use crate::core::result::OxgenResult;
-use crate::core::template::render_template;
+use crate::core::template::TemplateRenderer;
 
-static RESOURCE_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/resource");
+static MOCK_RESOURCE_TEMPLATES: Dir<'static> =
+    include_dir!("$CARGO_MANIFEST_DIR/templates/resource/mock");
+
+static MONGODB_RESOURCE_TEMPLATES: Dir<'static> =
+    include_dir!("$CARGO_MANIFEST_DIR/templates/resource/mongodb");
 
 pub struct ModelGenerator {
     name: Name,
     force: bool,
     dry_run: bool,
+    database: String,
 }
 
 impl ModelGenerator {
-    pub fn new(name: Name, force: bool, dry_run: bool) -> Self {
+    pub fn new(name: Name, force: bool, dry_run: bool, database: String) -> Self {
         Self {
             name,
             force,
             dry_run,
+            database,
         }
     }
 
@@ -44,10 +50,10 @@ impl ModelGenerator {
         self.module_path(name).join("mod.rs")
     }
 
-    fn load_template(&self) -> OxgenResult<&'static str> {
+    fn load_template(&self, templates_dir: &'static Dir<'static>) -> OxgenResult<&'static str> {
         let template_path = "model.rs.ox";
 
-        let file = RESOURCE_TEMPLATES
+        let file = templates_dir
             .get_file(template_path)
             .ok_or_else(|| OxgenError::TemplateNotFound(template_path.to_string()))?;
 
@@ -185,20 +191,42 @@ impl ModelGenerator {
 
         Ok(())
     }
+
+    //    fn collection_name(&self) -> Option<String> {
+    //        match self.database.as_str() {
+    //            "mongo" | "mongodb" => Some(
+    //                self.collection
+    //                    .clone()
+    //                    .unwrap_or_else(|| self.name.snake.clone()),
+    //            ),
+    //            _ => None,
+    //        }
+    //    }
 }
 
 impl Generator for ModelGenerator {
     fn generate(&self) -> OxgenResult<()> {
+        let templates_dir: &'static Dir<'static> = match self.database.as_str() {
+            "mongodb" => &MONGODB_RESOURCE_TEMPLATES,
+            "mock" => &MOCK_RESOURCE_TEMPLATES,
+            _ => return Err(OxgenError::UnknownDatabase),
+        };
+
         let module_path = self.module_path(&self.name);
         let model_path = self.model_path(&self.name);
+        //       let collection_name = self.collection_name();
 
         ensure_oxgen_project_root()?;
         self.ensure_module_directory(&module_path)?;
         self.ensure_root_modules_mod_file(&self.name)?;
         self.ensure_resource_module_mod_file(&self.name)?;
 
-        let template = self.load_template()?;
-        let content = render_template(template, &self.name);
+        let template = self.load_template(templates_dir)?;
+        let renderer = TemplateRenderer {
+            name: self.name.clone(),
+            collection: None,
+        };
+        let content = renderer.render_template(template);
 
         let writer = FileWriter::new(self.force, self.dry_run);
         writer.write_file(model_path, &content)?;
