@@ -1,6 +1,7 @@
 use crate::cli::command::{Command, GeneratorCommand};
 use crate::core::error::OxgenError;
 use crate::core::naming::Name;
+use crate::core::project_detector::which_db_engine;
 use crate::core::result::OxgenResult;
 
 pub fn parse_args(args: Vec<String>) -> OxgenResult<Command> {
@@ -71,6 +72,35 @@ fn parse_new_command(args: &[String]) -> OxgenResult<Command> {
     })
 }
 
+fn get_generate_name(args: &[String]) -> OxgenResult<String> {
+    let mut index = 1;
+
+    while index < args.len() {
+        match args[index].as_str() {
+            "--force" | "--dry-run" => {
+                index += 1;
+            }
+
+            "--collection" => {
+                let _ = args
+                    .get(index + 1)
+                    .filter(|value| !value.starts_with('-'))
+                    .ok_or_else(|| OxgenError::MissingArgument("collection".to_string()))?;
+
+                index += 2;
+            }
+
+            arg if arg.starts_with('-') => {
+                index += 1;
+            }
+
+            arg => return Ok(arg.to_string()),
+        }
+    }
+
+    Err(OxgenError::MissingArgument("name".to_string()))
+}
+
 fn normalize_database(database: &str) -> OxgenResult<String> {
     match database.trim().to_lowercase().as_str() {
         "none" => Ok("none".to_string()),
@@ -86,14 +116,7 @@ fn parse_generate_command(args: &[String]) -> OxgenResult<Command> {
     }
 
     let generator = args[0].as_str();
-
-    let name_input = args
-        .iter()
-        .skip(1)
-        .find(|arg| !arg.starts_with('-'))
-        .ok_or_else(|| OxgenError::MissingArgument("name".to_string()))?
-        .to_string();
-
+    let name_input = get_generate_name(args)?;
     let name = Name::new(&name_input)?;
 
     let force = has_flag(args, "--force");
@@ -105,31 +128,42 @@ fn parse_generate_command(args: &[String]) -> OxgenResult<Command> {
             force,
             dry_run,
         },
+
         "controller" | "ctrl" => GeneratorCommand::Controller {
             name,
             force,
             dry_run,
         },
+
         "service" | "svc" => GeneratorCommand::Service {
             name,
             force,
             dry_run,
         },
-        "model" => GeneratorCommand::Model {
-            name,
-            force,
-            dry_run,
-        },
+
+        "model" => {
+            let database = which_db_engine()?;
+
+            GeneratorCommand::Model {
+                name,
+                force,
+                dry_run,
+                database,
+            }
+        }
+
         "dto" => GeneratorCommand::Dto {
             name,
             force,
             dry_run,
         },
+
         "route" => GeneratorCommand::Route {
             name,
             force,
             dry_run,
         },
+
         unknown => return Err(OxgenError::UnknownGenerator(unknown.to_string())),
     };
 

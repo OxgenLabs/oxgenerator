@@ -7,7 +7,7 @@ use crate::core::error::OxgenError;
 use crate::core::generator::Generator;
 use crate::core::naming::Name;
 use crate::core::result::OxgenResult;
-use crate::core::template::render_template;
+use crate::core::template::TemplateRenderer;
 
 static MOCK_PROJECT_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/project/mock");
 
@@ -84,7 +84,11 @@ impl NewProjectGenerator {
 
         match file.contents_utf8() {
             Some(content) => {
-                let rendered_content = render_template(content, &self.name);
+                let renderer = TemplateRenderer {
+                    name: self.name.clone(),
+                    collection: None,
+                };
+                let rendered_content = renderer.render_template(content);
                 fs::write(final_output_path, rendered_content)?;
             }
             None => {
@@ -166,7 +170,7 @@ impl NewProjectGenerator {
 
 impl Generator for NewProjectGenerator {
     fn generate(&self) -> OxgenResult<()> {
-        // if self.database is"mongo" we use MONGODB_PROJECT_TEMPLATES
+        // if self.database is "mongo" we use MONGODB_PROJECT_TEMPLATES
         // if self.database is "mock" we use MOCK_PROJECT_TEMPLATES
         // if self.database is "none" we ask db engine
         let templates_dir: &Dir<'_> = match self.database.as_str() {

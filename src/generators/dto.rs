@@ -9,9 +9,9 @@ use crate::core::generator::Generator;
 use crate::core::naming::Name;
 use crate::core::project_detector::ensure_oxgen_project_root;
 use crate::core::result::OxgenResult;
-use crate::core::template::render_template;
+use crate::core::template::TemplateRenderer;
 
-static RESOURCE_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/resource");
+static RESOURCE_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/resource/mock");
 
 pub struct DtoGenerator {
     name: Name,
@@ -198,7 +198,11 @@ impl Generator for DtoGenerator {
         self.ensure_resource_module_mod_file(&self.name)?;
 
         let template = self.load_template()?;
-        let content = render_template(template, &self.name);
+        let renderer = TemplateRenderer {
+            name: self.name.clone(),
+            collection: None,
+        };
+        let content = renderer.render_template(template);
 
         let writer = FileWriter::new(self.force, self.dry_run);
         writer.write_file(dto_path, &content)?;

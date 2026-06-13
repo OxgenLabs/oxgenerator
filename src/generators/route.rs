@@ -9,9 +9,9 @@ use crate::core::generator::Generator;
 use crate::core::naming::Name;
 use crate::core::project_detector::ensure_oxgen_project_root;
 use crate::core::result::OxgenResult;
-use crate::core::template::render_template;
+use crate::core::template::TemplateRenderer;
 
-static RESOURCE_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/resource");
+static RESOURCE_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/resource/mock");
 
 pub struct RouteGenerator {
     name: Name,
@@ -282,7 +282,11 @@ impl Generator for RouteGenerator {
         }
 
         let template = self.load_template()?;
-        let content = render_template(template, &self.name);
+        let renderer = TemplateRenderer {
+            name: self.name.clone(),
+            collection: None,
+        };
+        let content = renderer.render_template(template);
 
         self.ensure_routes_directory(&routes_directory_path)?;
 

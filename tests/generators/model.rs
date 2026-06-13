@@ -4,12 +4,16 @@ use std::fs;
 use tempfile::tempdir;
 
 fn create_oxgen_project() -> tempfile::TempDir {
+    create_oxgen_project_with_database("mock")
+}
+
+fn create_oxgen_project_with_database(database: &str) -> tempfile::TempDir {
     let temp_dir = tempdir().unwrap();
 
     Command::cargo_bin("oxgen")
         .unwrap()
         .current_dir(temp_dir.path())
-        .args(["new", "test-api", "--database", "mock"])
+        .args(["new", "test-api", "--database", database])
         .assert()
         .success();
 
@@ -286,4 +290,37 @@ edition = "2021"
         .assert()
         .failure()
         .stderr(predicate::str::contains("no oxgen project found"));
+}
+
+#[test]
+fn generate_model_uses_mongodb_template_when_project_config_database_is_mongo() {
+    let temp_dir = create_oxgen_project_with_database("mongo");
+    let project = temp_dir.path().join("test-api");
+
+    Command::cargo_bin("oxgen")
+        .unwrap()
+        .current_dir(&project)
+        .args(["generate", "model", "user"])
+        .assert()
+        .success();
+
+    let model_path = project.join("src/modules/user/model.rs");
+
+    assert!(model_path.is_file());
+
+    let content = fs::read_to_string(model_path).unwrap();
+
+    assert!(content.contains("pub struct User"));
+    assert!(!content.contains("{{capitalized_resource_name}}"));
+    assert!(!content.contains("{{resource_name}}"));
+    assert!(!content.contains("{{name}}"));
+
+    assert!(
+        content.contains("mongodb")
+            || content.contains("bson")
+            || content.contains("ObjectId")
+            || content.contains("_id"),
+        "expected generated model to contain MongoDB-specific content, got:\n{}",
+        content
+    );
 }
