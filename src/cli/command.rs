@@ -51,11 +51,13 @@ pub enum GeneratorCommand {
         name: Name,
         force: bool,
         dry_run: bool,
+        database: String,
     },
     Route {
         name: Name,
         force: bool,
         dry_run: bool,
+        database: String,
     },
 }
 
@@ -98,12 +100,14 @@ impl Command {
                     name,
                     force,
                     dry_run,
-                } => DtoGenerator::new(name, force, dry_run).generate(),
+                    database,
+                } => DtoGenerator::new(name, force, dry_run, database).generate(),
                 GeneratorCommand::Route {
                     name,
                     force,
                     dry_run,
-                } => RouteGenerator::new(name, force, dry_run).generate(),
+                    database,
+                } => RouteGenerator::new(name, force, dry_run, database).generate(),
             },
 
             Command::Help => {

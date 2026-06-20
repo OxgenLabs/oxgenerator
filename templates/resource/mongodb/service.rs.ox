@@ -1,68 +1,109 @@
 use crate::common::error::AppError;
 
+use mongodb::{
+    Collection,
+    bson::{Document, doc, oid::ObjectId},
+    options::ReturnDocument,
+};
+
 use super::{
     dto::{
+        {{capitalized_resource_name}}DeleteResponse,
         {{capitalized_resource_name}}ListResponse,
         {{capitalized_resource_name}}Response,
-        {{capitalized_resource_name}}DeleteResponse,
     },
     model::{{capitalized_resource_name}},
 };
 
 pub async fn get_all_{{resource_name}}(
-    {{resource_name}}_list: Vec<{{capitalized_resource_name}}>
+    {{resource_name}}_collection: Collection<{{capitalized_resource_name}}>,
 ) -> Result<{{capitalized_resource_name}}ListResponse, AppError> {
-    Ok({{capitalized_resource_name}}ListResponse::from({{resource_name}}_list))
+    let mut cursor = {{resource_name}}_collection.find(doc! {}).await?;
+    let mut results = Vec::new();
+
+    while cursor.advance().await? {
+        let {{resource_name}} = cursor.deserialize_current()?;
+        results.push({{resource_name}});
+    }
+
+    Ok({{capitalized_resource_name}}ListResponse::from(results))
 }
 
 pub async fn get_{{resource_name}}(
-    {{resource_name}}_list: Vec<{{capitalized_resource_name}}>,
-    id: String,
+    {{resource_name}}_collection: Collection<{{capitalized_resource_name}}>,
+    id: ObjectId,
 ) -> Result<{{capitalized_resource_name}}Response, AppError> {
-    let {{resource_name}} = {{resource_name}}_list
-        .into_iter()
-        .find(|{{resource_name}}| {{resource_name}}.id == id)
+    let {{resource_name}} = {{resource_name}}_collection
+        .find_one(doc! {
+            "_id": id,
+        })
+        .await?
         .ok_or_else(|| AppError::not_found("{{capitalized_resource_name}} not found"))?;
 
-    Ok({{capitalized_resource_name}}Response::from({{resource_name}}))
+    Ok({{capitalized_resource_name}}Response::from(
+        {{resource_name}},
+    ))
 }
 
 pub async fn create_{{resource_name}}(
-    mut {{resource_name}}_list: Vec<{{capitalized_resource_name}}>
-) -> Result<{{capitalized_resource_name}}ListResponse, AppError> {
-    {{resource_name}}_list.push({{capitalized_resource_name}} {
-        id: String::from("{{resource_name}}_1"),
-        created_at: 1710000000,
-        updated_at: None,
-    });
+    {{resource_name}}_collection: Collection<{{capitalized_resource_name}}>,
+    {{resource_name}}: {{capitalized_resource_name}},
+) -> Result<{{capitalized_resource_name}}Response, AppError> {
+    let id = {{resource_name}}.id;
 
-    Ok({{capitalized_resource_name}}ListResponse::from({{resource_name}}_list))
+    {{resource_name}}_collection
+        .insert_one(&{{resource_name}})
+        .await?;
+
+    let created_{{resource_name}} = {{resource_name}}_collection
+        .find_one(doc! {
+            "_id": id,
+        })
+        .await?
+        .ok_or_else(|| AppError::not_found("{{capitalized_resource_name}} not found after creation"))?;
+
+    Ok({{capitalized_resource_name}}Response::from(
+        created_{{resource_name}},
+    ))
 }
 
 pub async fn update_{{resource_name}}(
-    mut {{resource_name}}_list: Vec<{{capitalized_resource_name}}>,
-    id: String,
+    {{resource_name}}_collection: Collection<{{capitalized_resource_name}}>,
+    id: ObjectId,
+    update: Document,
 ) -> Result<{{capitalized_resource_name}}Response, AppError> {
-    let {{resource_name}} = {{resource_name}}_list
-        .iter_mut()
-        .find(|{{resource_name}}| {{resource_name}}.id == id)
+    let updated_{{resource_name}} = {{resource_name}}_collection
+        .find_one_and_update(
+            doc! {
+                "_id": id,
+            },
+            doc! {
+                "$set": update,
+            },
+        )
+        .return_document(ReturnDocument::After)
+        .await?
         .ok_or_else(|| AppError::not_found("{{capitalized_resource_name}} not found"))?;
 
-    {{resource_name}}.updated_at = Some(1710000000);
-
-    Ok({{capitalized_resource_name}}Response::from({{resource_name}}.clone()))
+    Ok({{capitalized_resource_name}}Response::from(
+        updated_{{resource_name}},
+    ))
 }
 
 pub async fn delete_{{resource_name}}(
-    mut {{resource_name}}_list: Vec<{{capitalized_resource_name}}>,
-    id: String,
+    {{resource_name}}_collection: Collection<{{capitalized_resource_name}}>,
+    id: ObjectId,
 ) -> Result<{{capitalized_resource_name}}DeleteResponse, AppError> {
-    let initial_len = {{resource_name}}_list.len();
+    let result = {{resource_name}}_collection
+        .delete_one(doc! {
+            "_id": id,
+        })
+        .await?;
 
-    {{resource_name}}_list.retain(|{{resource_name}}| {{resource_name}}.id != id);
-
-    if {{resource_name}}_list.len() == initial_len {
-        return Err(AppError::not_found("{{capitalized_resource_name}} not found"));
+    if result.deleted_count == 0 {
+        return Err(AppError::not_found(
+            "{{capitalized_resource_name}} not found",
+        ));
     }
 
     Ok({{capitalized_resource_name}}DeleteResponse { id })

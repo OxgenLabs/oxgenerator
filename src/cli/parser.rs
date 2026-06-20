@@ -152,16 +152,25 @@ fn parse_generate_command(args: &[String]) -> OxgenResult<Command> {
             }
         }
 
-        "dto" => GeneratorCommand::Dto {
-            name,
-            force,
-            dry_run,
-        },
+        "dto" => {
+            let database = which_db_engine()?;
 
-        "route" => GeneratorCommand::Route {
-            name,
-            force,
-            dry_run,
+            GeneratorCommand::Dto {
+                name,
+                force,
+                dry_run,
+                database,
+            }
+        }
+
+        "route" => {
+            let database = which_db_engine()?;
+             GeneratorCommand::Route {
+                name,
+                force,
+                dry_run,
+                database,
+            }
         },
 
         unknown => return Err(OxgenError::UnknownGenerator(unknown.to_string())),

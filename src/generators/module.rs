@@ -32,7 +32,13 @@ impl ModuleGenerator {
     }
 
     fn generate_dto(&self) -> OxgenResult<()> {
-        DtoGenerator::new(self.name.clone(), self.force, self.dry_run).generate()
+        DtoGenerator::new(
+            self.name.clone(),
+            self.force,
+            self.dry_run,
+            "mock".to_string(),
+        )
+        .generate()
     }
 
     fn generate_service(&self) -> OxgenResult<()> {
@@ -44,7 +50,13 @@ impl ModuleGenerator {
     }
 
     fn generate_route(&self) -> OxgenResult<()> {
-        RouteGenerator::new(self.name.clone(), self.force, self.dry_run).generate()
+        RouteGenerator::new(
+            self.name.clone(),
+            self.force,
+            self.dry_run,
+            "mock".to_string(),
+        )
+        .generate()
     }
 }
 

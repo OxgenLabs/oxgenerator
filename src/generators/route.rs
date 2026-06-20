@@ -11,20 +11,26 @@ use crate::core::project_detector::ensure_oxgen_project_root;
 use crate::core::result::OxgenResult;
 use crate::core::template::TemplateRenderer;
 
-static RESOURCE_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/resource/mock");
+static MOCK_RESOURCE_TEMPLATES: Dir<'static> =
+    include_dir!("$CARGO_MANIFEST_DIR/templates/resource/mock");
+
+static MONGODB_RESOURCE_TEMPLATES: Dir<'static> =
+    include_dir!("$CARGO_MANIFEST_DIR/templates/resource/mongodb");
 
 pub struct RouteGenerator {
     name: Name,
     force: bool,
     dry_run: bool,
+    database: String,
 }
 
 impl RouteGenerator {
-    pub fn new(name: Name, force: bool, dry_run: bool) -> Self {
+    pub fn new(name: Name, force: bool, dry_run: bool, database: String) -> Self {
         Self {
             name,
             force,
             dry_run,
+            database
         }
     }
 
@@ -49,10 +55,10 @@ impl RouteGenerator {
         PathBuf::from("Cargo.toml")
     }
 
-    fn load_template(&self) -> OxgenResult<&'static str> {
+    fn load_template(&self, templates_dir: &'static Dir<'_>) -> OxgenResult<&'static str> {
         let template_path = "route.rs.ox";
 
-        let file = RESOURCE_TEMPLATES
+        let file = templates_dir
             .get_file(template_path)
             .ok_or_else(|| OxgenError::TemplateNotFound(template_path.to_string()))?;
 
@@ -270,6 +276,11 @@ impl RouteGenerator {
 
 impl Generator for RouteGenerator {
     fn generate(&self) -> OxgenResult<()> {
+        let templates_dir: &'static Dir<'static> = match self.database.as_str() {
+            "mongodb" => &MONGODB_RESOURCE_TEMPLATES,
+            "mock" => &MOCK_RESOURCE_TEMPLATES,
+            _ => return Err(OxgenError::UnknownDatabase),
+        };
         let routes_directory_path = self.routes_directory_path();
         let route_path = self.route_path(&self.name);
 
@@ -281,7 +292,7 @@ impl Generator for RouteGenerator {
             ));
         }
 
-        let template = self.load_template()?;
+        let template = self.load_template(templates_dir)?;
         let renderer = TemplateRenderer {
             name: self.name.clone(),
             collection: None,
