@@ -30,16 +30,21 @@ pub enum GeneratorCommand {
         name: Name,
         force: bool,
         dry_run: bool,
+        database: String,
+        collection: Option<String>
     },
     Controller {
         name: Name,
         force: bool,
         dry_run: bool,
+        database: String,
+        collection: Option<String>,
     },
     Service {
         name: Name,
         force: bool,
         dry_run: bool,
+        database: String,
     },
     Model {
         name: Name,
@@ -76,19 +81,26 @@ impl Command {
                     name,
                     force,
                     dry_run,
-                } => ModuleGenerator::new(name, force, dry_run).generate(),
+                    database,
+                    collection
+                } => ModuleGenerator::new(name, force, dry_run, database, collection).generate(),
 
                 GeneratorCommand::Controller {
                     name,
                     force,
                     dry_run,
-                } => ControllerGenerator::new(name, force, dry_run).generate(),
+                    database,
+                    collection,
+                } => {
+                    ControllerGenerator::new(name, force, dry_run, database, collection).generate()
+                }
 
                 GeneratorCommand::Service {
                     name,
                     force,
                     dry_run,
-                } => ServiceGenerator::new(name, force, dry_run).generate(),
+                    database,
+                } => ServiceGenerator::new(name, force, dry_run, database).generate(),
 
                 GeneratorCommand::Model {
                     name,

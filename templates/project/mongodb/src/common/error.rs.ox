@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use mongodb::error::Error as MongoError;
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -81,5 +82,11 @@ impl IntoResponse for AppError {
         }));
 
         (self.status, body).into_response()
+    }
+}
+
+impl From<MongoError> for AppError {
+    fn from(_: MongoError) -> Self {
+        AppError::database_error()
     }
 }

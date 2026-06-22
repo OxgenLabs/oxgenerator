@@ -16,6 +16,8 @@ impl TemplateRenderer {
 
         if let Some(collection) = &self.collection {
             rendered = rendered.replace("{{collection_name}}", collection);
+        } else {
+            rendered = rendered.replace("{{collection_name}}", &self.name.raw);
         }
 
         rendered

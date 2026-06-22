@@ -101,6 +101,14 @@ fn get_generate_name(args: &[String]) -> OxgenResult<String> {
     Err(OxgenError::MissingArgument("name".to_string()))
 }
 
+pub fn get_collection_name(args: &[String]) -> Option<String> {
+    args.iter()
+        .position(|arg| arg == "--collection")
+        .and_then(|index| args.get(index + 1))
+        .filter(|value| !value.starts_with('-'))
+        .cloned()
+}
+
 fn normalize_database(database: &str) -> OxgenResult<String> {
     match database.trim().to_lowercase().as_str() {
         "none" => Ok("none".to_string()),
@@ -122,55 +130,55 @@ fn parse_generate_command(args: &[String]) -> OxgenResult<Command> {
     let force = has_flag(args, "--force");
     let dry_run = has_flag(args, "--dry-run");
 
+    let database = which_db_engine()?;
+    let collection = match database.as_str() {
+        "mongodb" => get_collection_name(args),
+        _ => None,
+    };
+
     let generator = match generator {
         "module" | "mod" => GeneratorCommand::Module {
             name,
             force,
             dry_run,
+            database,
+            collection
         },
 
         "controller" | "ctrl" => GeneratorCommand::Controller {
             name,
             force,
             dry_run,
+            database,
+            collection,
         },
 
         "service" | "svc" => GeneratorCommand::Service {
             name,
             force,
             dry_run,
+            database,
         },
 
-        "model" => {
-            let database = which_db_engine()?;
+        "model" => GeneratorCommand::Model {
+            name,
+            force,
+            dry_run,
+            database,
+        },
 
-            GeneratorCommand::Model {
-                name,
-                force,
-                dry_run,
-                database,
-            }
-        }
+        "dto" => GeneratorCommand::Dto {
+            name,
+            force,
+            dry_run,
+            database,
+        },
 
-        "dto" => {
-            let database = which_db_engine()?;
-
-            GeneratorCommand::Dto {
-                name,
-                force,
-                dry_run,
-                database,
-            }
-        }
-
-        "route" => {
-            let database = which_db_engine()?;
-             GeneratorCommand::Route {
-                name,
-                force,
-                dry_run,
-                database,
-            }
+        "route" => GeneratorCommand::Route {
+            name,
+            force,
+            dry_run,
+            database,
         },
 
         unknown => return Err(OxgenError::UnknownGenerator(unknown.to_string())),

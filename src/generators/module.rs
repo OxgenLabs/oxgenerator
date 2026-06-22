@@ -10,14 +10,18 @@ pub struct ModuleGenerator {
     name: Name,
     force: bool,
     dry_run: bool,
+    database: String,
+    collection: Option<String>
 }
 
 impl ModuleGenerator {
-    pub fn new(name: Name, force: bool, dry_run: bool) -> Self {
+    pub fn new(name: Name, force: bool, dry_run: bool, database: String, collection: Option<String>) -> Self {
         Self {
             name,
             force,
             dry_run,
+            database,
+            collection
         }
     }
 
@@ -26,7 +30,7 @@ impl ModuleGenerator {
             self.name.clone(),
             self.force,
             self.dry_run,
-            "mock".to_string(),
+            self.database.clone()
         )
         .generate()
     }
@@ -36,17 +40,30 @@ impl ModuleGenerator {
             self.name.clone(),
             self.force,
             self.dry_run,
-            "mock".to_string(),
+            self.database.clone()
         )
         .generate()
     }
 
     fn generate_service(&self) -> OxgenResult<()> {
-        ServiceGenerator::new(self.name.clone(), self.force, self.dry_run).generate()
+        ServiceGenerator::new(
+            self.name.clone(),
+            self.force,
+            self.dry_run,
+            self.database.clone()
+        )
+        .generate()
     }
 
     fn generate_controller(&self) -> OxgenResult<()> {
-        ControllerGenerator::new(self.name.clone(), self.force, self.dry_run).generate()
+        ControllerGenerator::new(
+            self.name.clone(),
+            self.force,
+            self.dry_run,
+            self.database.clone(),
+            self.collection.clone()
+        )
+        .generate()
     }
 
     fn generate_route(&self) -> OxgenResult<()> {
@@ -54,7 +71,7 @@ impl ModuleGenerator {
             self.name.clone(),
             self.force,
             self.dry_run,
-            "mock".to_string(),
+            self.database.clone()
         )
         .generate()
     }

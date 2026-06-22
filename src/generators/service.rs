@@ -11,20 +11,26 @@ use crate::core::project_detector::ensure_oxgen_project_root;
 use crate::core::result::OxgenResult;
 use crate::core::template::TemplateRenderer;
 
-static RESOURCE_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/resource/mock");
+static MOCK_RESOURCE_TEMPLATES: Dir<'static> =
+    include_dir!("$CARGO_MANIFEST_DIR/templates/resource/mock");
+
+static MONGODB_RESOURCE_TEMPLATES: Dir<'static> =
+    include_dir!("$CARGO_MANIFEST_DIR/templates/resource/mongodb");
 
 pub struct ServiceGenerator {
     name: Name,
     force: bool,
     dry_run: bool,
+    database: String,
 }
 
 impl ServiceGenerator {
-    pub fn new(name: Name, force: bool, dry_run: bool) -> Self {
+    pub fn new(name: Name, force: bool, dry_run: bool, database: String) -> Self {
         Self {
             name,
             force,
             dry_run,
+            database,
         }
     }
 
@@ -44,10 +50,10 @@ impl ServiceGenerator {
         self.module_path(name).join("mod.rs")
     }
 
-    fn load_template(&self) -> OxgenResult<&'static str> {
+    fn load_template(&self, templates_dir: &'static Dir<'_>) -> OxgenResult<&'static str> {
         let template_path = "service.rs.ox";
 
-        let file = RESOURCE_TEMPLATES
+        let file = templates_dir
             .get_file(template_path)
             .ok_or_else(|| OxgenError::TemplateNotFound(template_path.to_string()))?;
 
@@ -195,6 +201,11 @@ impl ServiceGenerator {
 
 impl Generator for ServiceGenerator {
     fn generate(&self) -> OxgenResult<()> {
+        let templates_dir: &'static Dir<'static> = match self.database.as_str() {
+            "mongodb" => &MONGODB_RESOURCE_TEMPLATES,
+            "mock" => &MOCK_RESOURCE_TEMPLATES,
+            _ => return Err(OxgenError::UnknownDatabase),
+        };
         let module_path = self.module_path(&self.name);
         let service_path = self.service_path(&self.name);
 
@@ -203,7 +214,7 @@ impl Generator for ServiceGenerator {
         self.ensure_root_modules_mod_file(&self.name)?;
         self.ensure_resource_module_mod_file(&self.name)?;
 
-        let template = self.load_template()?;
+        let template = self.load_template(templates_dir)?;
         let renderer = TemplateRenderer {
             name: self.name.clone(),
             collection: None,

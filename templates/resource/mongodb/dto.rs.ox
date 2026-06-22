@@ -12,7 +12,7 @@ pub struct {{capitalized_resource_name}}Response {
 impl From<{{capitalized_resource_name}}> for {{capitalized_resource_name}}Response {
     fn from(value: {{capitalized_resource_name}}) -> Self {
         Self {
-            id: value.id,
+            id: value.id.to_hex(),
             created_at: value.created_at,
             updated_at: value.updated_at,
         }

@@ -60,7 +60,11 @@ pub async fn create_{{resource_name}}(
             "_id": id,
         })
         .await?
-        .ok_or_else(|| AppError::not_found("{{capitalized_resource_name}} not found after creation"))?;
+        .ok_or_else(|| {
+            AppError::not_found(
+                "{{capitalized_resource_name}} not found after creation",
+            )
+        })?;
 
     Ok({{capitalized_resource_name}}Response::from(
         created_{{resource_name}},
@@ -106,5 +110,7 @@ pub async fn delete_{{resource_name}}(
         ));
     }
 
-    Ok({{capitalized_resource_name}}DeleteResponse { id })
+    Ok({{capitalized_resource_name}}DeleteResponse {
+        id: id.to_hex(),
+    })
 }
