@@ -30,7 +30,7 @@ impl RouteGenerator {
             name,
             force,
             dry_run,
-            database
+            database,
         }
     }
 

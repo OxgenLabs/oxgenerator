@@ -14,7 +14,7 @@ async fn main() {
     let mongo_uri = std::env::var("MONGO_URI").expect("missing MONGO_URI");
 
     let secret_store = SecretStore;
-    let database = mongodb::Client::with_uri_str(&mongo_uri).await.unwrap();
+    let database = mongodb::Client::with_uri_str(&mongo_uri).await.unwrap().database("{{crate_name}}");
 
     let app_state = AppState {
         secret_store,

@@ -1,6 +1,6 @@
 #[derive(Clone)]
 pub struct AppState {
-    pub database: mongodb::Client,
+    pub database: mongodb::Database,
     pub secret_store: SecretStore,
     pub started_at: std::time::Instant,
 }
