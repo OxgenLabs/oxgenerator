@@ -1,214 +1,59 @@
-use std::fs;
-use std::path::{Path, PathBuf};
-
-use include_dir::{Dir, include_dir};
+use include_dir::Dir;
 
 use crate::core::error::OxgenError;
 use crate::core::file_writer::FileWriter;
-use crate::core::generator::Generator;
+use crate::core::generator::{Generator, ResourceGenerator, resource_templates};
+use crate::core::generator_context::GeneratorContext;
 use crate::core::naming::Name;
 use crate::core::project_detector::ensure_oxgen_project_root;
 use crate::core::result::OxgenResult;
-
-static RESOURCE_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/resource");
+use crate::core::template::TemplateRenderer;
 
 pub struct ModelGenerator {
-    name: String,
-    force: bool,
-    dry_run: bool,
+    name: Name,
+    context: GeneratorContext,
 }
 
 impl ModelGenerator {
-    pub fn new(name: String, force: bool, dry_run: bool) -> Self {
-        Self {
-            name,
-            force,
-            dry_run,
-        }
+    pub fn new(name: Name, context: GeneratorContext) -> Self {
+        Self { name, context }
     }
 
-    fn module_path(&self, name: &Name) -> PathBuf {
-        PathBuf::from("src").join("modules").join(&name.snake)
-    }
-
-    fn model_path(&self, name: &Name) -> PathBuf {
-        self.module_path(name).join("model.rs")
-    }
-
-    fn root_modules_mod_path(&self) -> PathBuf {
-        PathBuf::from("src").join("modules").join("mod.rs")
-    }
-
-    fn resource_module_mod_path(&self, name: &Name) -> PathBuf {
-        self.module_path(name).join("mod.rs")
-    }
-
-    fn load_template(&self) -> OxgenResult<&'static str> {
+    fn load_template(templates_dir: &'static Dir<'static>) -> OxgenResult<&'static str> {
         let template_path = "model.rs.ox";
 
-        let file = RESOURCE_TEMPLATES
+        let file = templates_dir
             .get_file(template_path)
             .ok_or_else(|| OxgenError::TemplateNotFound(template_path.to_string()))?;
 
         file.contents_utf8()
             .ok_or_else(|| OxgenError::InvalidTemplatePath(template_path.to_string()))
     }
-
-    fn render_template(&self, template: &str, name: &Name) -> String {
-        template
-            .replace("{{name}}", &name.snake)
-            .replace("{{resource_name}}", &name.snake)
-            .replace("{{capitalized_resource_name}}", &name.pascal)
-    }
-
-    fn ensure_module_directory(&self, module_path: &Path) -> OxgenResult<()> {
-        if module_path.exists() {
-            return Ok(());
-        }
-
-        if self.dry_run {
-            println!("[CREATE] {}", module_path.display());
-            return Ok(());
-        }
-
-        fs::create_dir_all(module_path)?;
-
-        Ok(())
-    }
-
-    fn ensure_root_modules_mod_file(&self, name: &Name) -> OxgenResult<()> {
-        let modules_mod_path = self.root_modules_mod_path();
-        let module_declaration = format!("pub mod {};", name.snake);
-
-        if self.dry_run {
-            if !modules_mod_path.exists() {
-                println!("[CREATE] {}", modules_mod_path.display());
-                println!(
-                    "[ADD] `{}` to {}",
-                    module_declaration,
-                    modules_mod_path.display()
-                );
-                return Ok(());
-            }
-
-            let content = fs::read_to_string(&modules_mod_path)?;
-
-            if !content
-                .lines()
-                .any(|line| line.trim() == module_declaration)
-            {
-                println!("[UPDATE] {}", modules_mod_path.display());
-                println!(
-                    "[ADD] `{}` to {}",
-                    module_declaration,
-                    modules_mod_path.display()
-                );
-            }
-
-            return Ok(());
-        }
-
-        if let Some(parent) = modules_mod_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-
-        let mut content = if modules_mod_path.exists() {
-            fs::read_to_string(&modules_mod_path)?
-        } else {
-            String::new()
-        };
-
-        if content
-            .lines()
-            .any(|line| line.trim() == module_declaration)
-        {
-            return Ok(());
-        }
-
-        if !content.is_empty() && !content.ends_with('\n') {
-            content.push('\n');
-        }
-
-        content.push_str(&module_declaration);
-        content.push('\n');
-
-        fs::write(modules_mod_path, content)?;
-
-        Ok(())
-    }
-
-    fn ensure_resource_module_mod_file(&self, name: &Name) -> OxgenResult<()> {
-        let module_mod_path = self.resource_module_mod_path(name);
-        let model_declaration = "pub mod model;";
-
-        if self.dry_run {
-            if !module_mod_path.exists() {
-                println!("[CREATE] {}", module_mod_path.display());
-                println!(
-                    "[ADD] `{}` to {}",
-                    model_declaration,
-                    module_mod_path.display()
-                );
-                return Ok(());
-            }
-
-            let content = fs::read_to_string(&module_mod_path)?;
-
-            if !content.lines().any(|line| line.trim() == model_declaration) {
-                println!("[UPDATE] {}", module_mod_path.display());
-                println!(
-                    "[ADD] `{}` to {}",
-                    model_declaration,
-                    module_mod_path.display()
-                );
-            }
-
-            return Ok(());
-        }
-
-        if let Some(parent) = module_mod_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-
-        let mut content = if module_mod_path.exists() {
-            fs::read_to_string(&module_mod_path)?
-        } else {
-            String::new()
-        };
-
-        if content.lines().any(|line| line.trim() == model_declaration) {
-            return Ok(());
-        }
-
-        if !content.is_empty() && !content.ends_with('\n') {
-            content.push('\n');
-        }
-
-        content.push_str(model_declaration);
-        content.push('\n');
-
-        fs::write(module_mod_path, content)?;
-
-        Ok(())
-    }
 }
 
 impl Generator for ModelGenerator {
     fn generate(&self) -> OxgenResult<()> {
-        let name = Name::new(&self.name)?;
-
-        let module_path = self.module_path(&name);
-        let model_path = self.model_path(&name);
-
         ensure_oxgen_project_root()?;
-        self.ensure_module_directory(&module_path)?;
-        self.ensure_root_modules_mod_file(&name)?;
-        self.ensure_resource_module_mod_file(&name)?;
 
-        let template = self.load_template()?;
-        let content = self.render_template(template, &name);
+        let resource_generator = ResourceGenerator::new(&self.name, self.context);
 
-        let writer = FileWriter::new(self.force, self.dry_run);
+        resource_generator.ensure_module_structure("model")?;
+
+        let model_path = resource_generator.resource_file_path("model");
+
+        let templates_dir = resource_templates(self.context.database);
+
+        let template = Self::load_template(templates_dir)?;
+
+        let renderer = TemplateRenderer {
+            name: self.name.clone(),
+            collection: None,
+        };
+
+        let content = renderer.render_template(template);
+
+        let writer = FileWriter::new(self.context.force, self.context.dry_run);
+
         writer.write_file(model_path, &content)?;
 
         Ok(())

@@ -3,7 +3,7 @@ Output etc/demo.gif
 Set Shell "fish"
 Set FontSize 18
 Set Width 1000
-Set Height 720 
+Set Height 820
 Set Padding 20
 Set Theme "Dracula"
 
@@ -20,22 +20,44 @@ Sleep 700ms
 
 Type "oxgen --help"
 Enter
-Sleep 3s
+Sleep 4s
 
 Ctrl+L
 Sleep 500ms
 
-Type "oxgen new blog-api --dry-run"
+Type "oxgen new blog-api --database mongodb --dry-run"
 Enter
-Sleep 3s
+Sleep 4s
 
 Ctrl+L
 Sleep 500ms
 
-Type "oxgen new blog-api"
+Type "oxgen new blog-api --database mongodb"
 Enter
-Sleep 2s
+Sleep 3s
 
 Type "tree -C blog-api -a -I '.git|target'"
 Enter
+Sleep 4s
+
+Ctrl+L
+Sleep 500ms
+
+Type "cd blog-api"
+Enter
+Sleep 700ms
+
+Type "oxgen generate module post --collection posts --dry-run"
+Enter
+Sleep 4s
+
+Ctrl+L
+Sleep 500ms
+
+Type "oxgen generate module post --collection posts"
+Enter
 Sleep 3s
+
+Type "tree -C src/modules/post"
+Enter
+Sleep 4s

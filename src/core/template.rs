@@ -1,22 +1,25 @@
 use crate::core::naming::Name;
-use crate::core::result::OxgenResult;
 
-pub struct TemplateContext {
+pub struct TemplateRenderer {
     pub name: Name,
+    pub collection: Option<String>,
 }
 
-impl TemplateContext {
-    pub fn new(raw_name: &str) -> OxgenResult<Self> {
-        Ok(Self {
-            name: Name::new(raw_name)?,
-        })
+impl TemplateRenderer {
+    pub fn render_template(&self, content: &str) -> String {
+        let mut rendered = content
+            .replace("{{crate_name}}", &self.name.snake)
+            .replace("{{project_name}}", &self.name.raw)
+            .replace("{{name}}", &self.name.snake)
+            .replace("{{resource_name}}", &self.name.snake)
+            .replace("{{capitalized_resource_name}}", &self.name.pascal);
+
+        if let Some(collection) = &self.collection {
+            rendered = rendered.replace("{{collection_name}}", collection);
+        } else {
+            rendered = rendered.replace("{{collection_name}}", &self.name.raw);
+        }
+
+        rendered
     }
-}
-
-pub fn render_template(content: &str, context: &TemplateContext) -> String {
-    content
-        .replace("{{name}}", &context.name.raw)
-        .replace("{{snake_name}}", &context.name.snake)
-        .replace("{{pascal_name}}", &context.name.pascal)
-        .replace("{{kebab_name}}", &context.name.kebab)
 }

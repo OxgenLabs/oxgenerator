@@ -22,6 +22,10 @@ pub enum OxgenError {
     RustKeywordPackageName(String),
     RustBuiltInPackageName(String),
     GitInitFailed(String),
+    InquireMenuInteractionFailed(String),
+    CollectionUnsupportedGenerator(String),
+    CollectionRequiresMongoDb,
+    UnknownDatabase,
 }
 
 impl fmt::Display for OxgenError {
@@ -62,7 +66,7 @@ impl fmt::Display for OxgenError {
             OxgenError::InvalidName(name) => {
                 write!(
                     f,
-                    "invalid name `{}`\n\nhelp: names should use letters, numbers, `-` or `_`, and should not be empty.",
+                    "invalid name `{}`\n\nhelp: names should use lowercase letters, numbers, `-` or `_`, and should not be empty.",
                     name
                 )
             }
@@ -171,8 +175,33 @@ impl fmt::Display for OxgenError {
             OxgenError::GitInitFailed(err) => {
                 write!(
                     f,
-                    "error: failed to initialize git repository\n\nhelp: make sure Git is installed and available in your PATH.\n\ntry: `git --version`\n\ndetails: {}",
+                    "failed to initialize git repository\n\nhelp: make sure Git is installed and available in your PATH.\n\ntry: `git --version`\n\ndetails: {}",
                     err
+                )
+            }
+            OxgenError::InquireMenuInteractionFailed(err) => {
+                write!(
+                    f,
+                    "failed using menu\n\nhelp: make sure to choose an option.\n\ndetails: {}",
+                    err
+                )
+            }
+            OxgenError::UnknownDatabase => {
+                write!(
+                    f,
+                    "unknown database engine\n\nhelp: choose one of: `mock`, `mongo`.\n\nRun `oxgen help` to see usage and options."
+                )
+            }
+            OxgenError::CollectionUnsupportedGenerator(generator) => {
+                write!(
+                    f,
+                    "the --collection option is not supported by the `{generator}` generator"
+                )
+            }
+            OxgenError::CollectionRequiresMongoDb => {
+                write!(
+                    f,
+                    "the --collection option can only be used with a MongoDB project"
                 )
             }
         }
