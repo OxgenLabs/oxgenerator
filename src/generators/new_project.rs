@@ -3,26 +3,35 @@ use inquire::Select;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use crate::core::database::DatabaseEngine;
 use crate::core::error::OxgenError;
 use crate::core::generator::Generator;
 use crate::core::naming::Name;
 use crate::core::result::OxgenResult;
 use crate::core::template::TemplateRenderer;
 
-static MOCK_PROJECT_TEMPLATES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/templates/project/mock");
+static MOCK_PROJECT_TEMPLATES: Dir<'static> =
+    include_dir!("$CARGO_MANIFEST_DIR/templates/project/mock");
 
-static MONGODB_PROJECT_TEMPLATES: Dir<'_> =
+static MONGODB_PROJECT_TEMPLATES: Dir<'static> =
     include_dir!("$CARGO_MANIFEST_DIR/templates/project/mongodb");
+
+fn project_templates(database: DatabaseEngine) -> &'static Dir<'static> {
+    match database {
+        DatabaseEngine::Mock => &MOCK_PROJECT_TEMPLATES,
+        DatabaseEngine::MongoDb => &MONGODB_PROJECT_TEMPLATES,
+    }
+}
 
 pub struct NewProjectGenerator {
     name: Name,
     force: bool,
     dry_run: bool,
-    database: String,
+    database: Option<DatabaseEngine>,
 }
 
 impl NewProjectGenerator {
-    pub fn new(name: Name, force: bool, dry_run: bool, database: String) -> Self {
+    pub fn new(name: Name, force: bool, dry_run: bool, database: Option<DatabaseEngine>) -> Self {
         Self {
             name,
             force,
@@ -35,18 +44,19 @@ impl NewProjectGenerator {
         PathBuf::from(&self.name.raw)
     }
 
-    fn collect_template_files(&self, project_templates: &Dir<'_>) -> OxgenResult<Vec<PathBuf>> {
+    fn collect_template_files(&self, project_templates: &Dir<'_>) -> Vec<PathBuf> {
         let mut files = Vec::new();
+
         Self::collect_template_files_recursive(project_templates, &mut files);
 
-        Ok(files)
+        files
     }
 
-    fn collect_template_files_recursive(dir: &Dir<'_>, files: &mut Vec<PathBuf>) {
-        for entry in dir.entries() {
+    fn collect_template_files_recursive(directory: &Dir<'_>, files: &mut Vec<PathBuf>) {
+        for entry in directory.entries() {
             match entry {
-                DirEntry::Dir(child_dir) => {
-                    Self::collect_template_files_recursive(child_dir, files);
+                DirEntry::Dir(child_directory) => {
+                    Self::collect_template_files_recursive(child_directory, files);
                 }
                 DirEntry::File(file) => {
                     files.push(file.path().to_path_buf());
@@ -76,6 +86,7 @@ impl NewProjectGenerator {
             .ok_or_else(|| OxgenError::InvalidTemplatePath(template_path.display().to_string()))?;
 
         let output_path = self.output_path_from_template_path(template_path);
+
         let final_output_path = project_path.join(output_path);
 
         if let Some(parent) = final_output_path.parent() {
@@ -88,7 +99,9 @@ impl NewProjectGenerator {
                     name: self.name.clone(),
                     collection: None,
                 };
+
                 let rendered_content = renderer.render_template(content);
+
                 fs::write(final_output_path, rendered_content)?;
             }
             None => {
@@ -99,16 +112,15 @@ impl NewProjectGenerator {
         Ok(())
     }
 
-    fn print_dry_run(&self, templates_dir: &Dir<'_>, project_path: &Path) -> OxgenResult<()> {
+    fn print_dry_run(&self, templates_dir: &Dir<'_>, project_path: &Path) {
         println!("dry run: project `{}` would be created", self.name.raw);
         println!();
 
-        for template_path in self.collect_template_files(templates_dir)? {
+        for template_path in self.collect_template_files(templates_dir) {
             let output_path = self.output_path_from_template_path(&template_path);
+
             println!("create {}", project_path.join(output_path).display());
         }
-
-        Ok(())
     }
 
     fn format_generated_project(&self, project_path: &Path) -> OxgenResult<()> {
@@ -120,7 +132,7 @@ impl NewProjectGenerator {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
 
-            return Err(OxgenError::CargoFmtFailed(stderr.to_string()));
+            return Err(OxgenError::CargoFmtFailed(stderr.trim().to_string()));
         }
 
         Ok(())
@@ -142,48 +154,48 @@ impl NewProjectGenerator {
     }
 
     fn git_available(&self) -> bool {
-        if let Err(error) = std::process::Command::new("git").arg("--version").output()
-            && error.kind() == std::io::ErrorKind::NotFound
-        {
-            false
-        } else {
-            true
+        match std::process::Command::new("git").arg("--version").output() {
+            Ok(_) => true,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => false,
+            Err(_) => true,
         }
     }
 
-    fn ask_db_engine(&self) -> OxgenResult<&Dir<'_>> {
+    fn ask_db_engine(&self) -> OxgenResult<DatabaseEngine> {
         let options = vec![
             "Use the mock database engine",
             "Use the MongoDB database engine",
         ];
 
-        let choice = Select::new("Select a database engine:", options).prompt();
+        let choice = Select::new("Select a database engine:", options)
+            .prompt()
+            .map_err(|error| OxgenError::InquireMenuInteractionFailed(error.to_string()))?;
 
         match choice {
-            Ok("Use the mock database engine") => Ok(&MOCK_PROJECT_TEMPLATES),
-            Ok("Use the MongoDB database engine") => Ok(&MONGODB_PROJECT_TEMPLATES),
-            Ok(_) => Err(OxgenError::UnknownDatabase),
-            Err(error) => Err(OxgenError::InquireMenuInteractionFailed(error.to_string())),
+            "Use the mock database engine" => Ok(DatabaseEngine::Mock),
+            "Use the MongoDB database engine" => Ok(DatabaseEngine::MongoDb),
+            _ => Err(OxgenError::UnknownDatabase),
+        }
+    }
+
+    fn selected_database(&self) -> OxgenResult<DatabaseEngine> {
+        match self.database {
+            Some(database) => Ok(database),
+            None => self.ask_db_engine(),
         }
     }
 }
 
 impl Generator for NewProjectGenerator {
     fn generate(&self) -> OxgenResult<()> {
-        // if self.database is "mongo" we use MONGODB_PROJECT_TEMPLATES
-        // if self.database is "mock" we use MOCK_PROJECT_TEMPLATES
-        // if self.database is "none" we ask db engine
-        let templates_dir: &Dir<'_> = match self.database.as_str() {
-            "mongo" | "mongodb" => &MONGODB_PROJECT_TEMPLATES,
-            "mock" => &MOCK_PROJECT_TEMPLATES,
-            "none" => self.ask_db_engine()?,
-            _ => return Err(OxgenError::UnknownDatabase),
-        };
-
+        let database = self.selected_database()?;
+        let templates_dir = project_templates(database);
         let project_path = self.project_path();
 
         if self.dry_run {
-            return self.print_dry_run(templates_dir, &project_path);
+            self.print_dry_run(templates_dir, &project_path);
+
+            return Ok(());
         }
 
         if project_path.exists() {
@@ -198,7 +210,7 @@ impl Generator for NewProjectGenerator {
 
         fs::create_dir_all(&project_path)?;
 
-        for template_path in self.collect_template_files(templates_dir)? {
+        for template_path in self.collect_template_files(templates_dir) {
             self.write_template_file(templates_dir, &project_path, &template_path)?;
         }
 
@@ -212,9 +224,11 @@ impl Generator for NewProjectGenerator {
         println!();
         println!("next steps:");
         println!("  cd {}", self.name.raw);
-        if std::ptr::eq(templates_dir, &MONGODB_PROJECT_TEMPLATES) {
-            println!("  change MONGO_URI in .env")
+
+        if database == DatabaseEngine::MongoDb {
+            println!("  change MONGO_URI in .env");
         }
+
         println!("  cargo run");
 
         Ok(())

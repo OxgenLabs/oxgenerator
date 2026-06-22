@@ -1,46 +1,34 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use include_dir::{Dir, include_dir};
+use include_dir::Dir;
 
 use crate::core::error::OxgenError;
 use crate::core::file_writer::FileWriter;
-use crate::core::generator::Generator;
+use crate::core::generator::{Generator, resource_templates};
+use crate::core::generator_context::GeneratorContext;
 use crate::core::naming::Name;
 use crate::core::project_detector::ensure_oxgen_project_root;
 use crate::core::result::OxgenResult;
 use crate::core::template::TemplateRenderer;
 
-static MOCK_RESOURCE_TEMPLATES: Dir<'static> =
-    include_dir!("$CARGO_MANIFEST_DIR/templates/resource/mock");
-
-static MONGODB_RESOURCE_TEMPLATES: Dir<'static> =
-    include_dir!("$CARGO_MANIFEST_DIR/templates/resource/mongodb");
-
 pub struct RouteGenerator {
     name: Name,
-    force: bool,
-    dry_run: bool,
-    database: String,
+    context: GeneratorContext,
 }
 
 impl RouteGenerator {
-    pub fn new(name: Name, force: bool, dry_run: bool, database: String) -> Self {
-        Self {
-            name,
-            force,
-            dry_run,
-            database,
-        }
+    pub fn new(name: Name, context: GeneratorContext) -> Self {
+        Self { name, context }
     }
 
     fn routes_directory_path(&self) -> PathBuf {
         PathBuf::from("src").join("routes")
     }
 
-    fn route_path(&self, name: &Name) -> PathBuf {
+    fn route_path(&self) -> PathBuf {
         self.routes_directory_path()
-            .join(format!("{}.rs", name.snake))
+            .join(format!("{}.rs", self.name.snake))
     }
 
     fn routes_mod_path(&self) -> PathBuf {
@@ -55,7 +43,7 @@ impl RouteGenerator {
         PathBuf::from("Cargo.toml")
     }
 
-    fn load_template(&self, templates_dir: &'static Dir<'_>) -> OxgenResult<&'static str> {
+    fn load_template(templates_dir: &'static Dir<'static>) -> OxgenResult<&'static str> {
         let template_path = "route.rs.ox";
 
         let file = templates_dir
@@ -71,8 +59,9 @@ impl RouteGenerator {
             return Ok(());
         }
 
-        if self.dry_run {
+        if self.context.dry_run {
             println!("[CREATE] {}", routes_directory_path.display());
+
             return Ok(());
         }
 
@@ -81,11 +70,12 @@ impl RouteGenerator {
         Ok(())
     }
 
-    fn ensure_routes_mod_file(&self, name: &Name) -> OxgenResult<()> {
+    fn ensure_routes_mod_file(&self) -> OxgenResult<()> {
         let routes_mod_path = self.routes_mod_path();
-        let route_declaration = format!("pub mod {};", name.snake);
 
-        if self.dry_run {
+        let route_declaration = format!("pub mod {};", self.name.snake);
+
+        if self.context.dry_run {
             if !routes_mod_path.exists() {
                 println!("[CREATE] {}", routes_mod_path.display());
                 println!(
@@ -93,6 +83,7 @@ impl RouteGenerator {
                     route_declaration,
                     routes_mod_path.display()
                 );
+
                 return Ok(());
             }
 
@@ -138,9 +129,9 @@ impl RouteGenerator {
 
     fn read_crate_name(&self) -> OxgenResult<String> {
         let cargo_toml_path = self.cargo_toml_path();
-        let content = fs::read_to_string(&cargo_toml_path)?;
+        let content = fs::read_to_string(cargo_toml_path)?;
 
-        let crate_name = content
+        content
             .lines()
             .map(str::trim)
             .find_map(|line| {
@@ -161,26 +152,27 @@ impl RouteGenerator {
                 OxgenError::InvalidPackageName(
                     "unable to read package name from Cargo.toml".to_string(),
                 )
-            })?;
-
-        Ok(crate_name)
+            })
     }
 
-    fn render_main_with_route_import(&self, content: &str, name: &Name) -> OxgenResult<String> {
-        let grouped_route_import = format!("{}::{}_routes", name.snake, name.snake);
-        let direct_route_import = format!("routes::{}::{}_routes", name.snake, name.snake);
+    fn render_main_with_route_import(&self, content: &str) -> OxgenResult<String> {
+        let grouped_route_import = format!("{}::{}_routes", self.name.snake, self.name.snake,);
+
+        let direct_route_import =
+            format!("routes::{}::{}_routes", self.name.snake, self.name.snake,);
 
         if content.contains(&grouped_route_import) || content.contains(&direct_route_import) {
             return Ok(content.to_string());
         }
 
-        let nested_route_import = format!("        {}::{}_routes,\n", name.snake, name.snake);
+        let nested_route_import =
+            format!("        {}::{}_routes,\n", self.name.snake, self.name.snake,);
 
         if content.contains("    routes::{") {
             if content.contains("        health::health_routes,\n") {
                 return Ok(content.replace(
                     "        health::health_routes,\n",
-                    &format!("        health::health_routes,\n{}", nested_route_import),
+                    &format!("        health::health_routes,\n{}", nested_route_import,),
                 ));
             }
 
@@ -197,8 +189,11 @@ impl RouteGenerator {
 
             if let Some((routes_block_start, relative_routes_block_end)) = routes_block_position {
                 let routes_block_end = routes_block_start + relative_routes_block_end;
+
                 let mut updated = content.to_string();
+
                 updated.insert_str(routes_block_end, &nested_route_import);
+
                 return Ok(updated);
             }
         }
@@ -208,22 +203,23 @@ impl RouteGenerator {
                 "    routes::health::health_routes,\n",
                 &format!(
                     "    routes::{{\n        health::health_routes,\n{}    }},\n",
-                    nested_route_import
+                    nested_route_import,
                 ),
             ));
         }
 
         let crate_name = self.read_crate_name()?;
+
         let standalone_import = format!(
             "use {}::routes::{}::{}_routes;\n",
-            crate_name, name.snake, name.snake
+            crate_name, self.name.snake, self.name.snake,
         );
 
-        Ok(format!("{}{}", standalone_import, content))
+        Ok(format!("{standalone_import}{content}"))
     }
 
-    fn render_main_with_route_merge(&self, content: &str, name: &Name) -> String {
-        let route_merge = format!("        .merge({}_routes())", name.snake);
+    fn render_main_with_route_merge(&self, content: &str) -> String {
+        let route_merge = format!("        .merge({}_routes())", self.name.snake,);
 
         if content.contains(&route_merge) {
             return content.to_string();
@@ -232,21 +228,28 @@ impl RouteGenerator {
         if content.contains("        .merge(health_routes)\n") {
             return content.replace(
                 "        .merge(health_routes)\n",
-                &format!("        .merge(health_routes)\n{}\n", route_merge),
+                &format!("        .merge(health_routes)\n{}\n", route_merge,),
             );
         }
 
         if content.contains("        .with_state(app_state.clone())") {
             return content.replace(
                 "        .with_state(app_state.clone())",
-                &format!("{}\n        .with_state(app_state.clone())", route_merge),
+                &format!("{}\n        .with_state(app_state.clone())", route_merge,),
+            );
+        }
+
+        if content.contains("        .with_state(app_state)") {
+            return content.replace(
+                "        .with_state(app_state)",
+                &format!("{}\n        .with_state(app_state)", route_merge,),
             );
         }
 
         content.to_string()
     }
 
-    fn ensure_main_file_uses_route(&self, name: &Name) -> OxgenResult<()> {
+    fn ensure_main_file_uses_route(&self) -> OxgenResult<()> {
         let main_path = self.main_path();
 
         if !main_path.exists() {
@@ -254,17 +257,25 @@ impl RouteGenerator {
         }
 
         let content = fs::read_to_string(&main_path)?;
-        let with_import = self.render_main_with_route_import(&content, name)?;
-        let updated = self.render_main_with_route_merge(&with_import, name);
+
+        let with_import = self.render_main_with_route_import(&content)?;
+
+        let updated = self.render_main_with_route_merge(&with_import);
 
         if updated == content {
             return Ok(());
         }
 
-        if self.dry_run {
+        if self.context.dry_run {
             println!("[UPDATE] {}", main_path.display());
-            println!("[ADD] route import `{}::{}_routes`", name.snake, name.snake);
-            println!("[MERGE] `{}_routes()` into app router", name.snake);
+
+            println!(
+                "[ADD] route import `{}::{}_routes`",
+                self.name.snake, self.name.snake,
+            );
+
+            println!("[MERGE] `{}_routes()` into app router", self.name.snake,);
+
             return Ok(());
         }
 
@@ -276,36 +287,37 @@ impl RouteGenerator {
 
 impl Generator for RouteGenerator {
     fn generate(&self) -> OxgenResult<()> {
-        let templates_dir: &'static Dir<'static> = match self.database.as_str() {
-            "mongodb" => &MONGODB_RESOURCE_TEMPLATES,
-            "mock" => &MOCK_RESOURCE_TEMPLATES,
-            _ => return Err(OxgenError::UnknownDatabase),
-        };
-        let routes_directory_path = self.routes_directory_path();
-        let route_path = self.route_path(&self.name);
-
         ensure_oxgen_project_root()?;
 
-        if route_path.exists() && !self.force {
+        let routes_directory_path = self.routes_directory_path();
+
+        let route_path = self.route_path();
+
+        if route_path.exists() && !self.context.force {
             return Err(OxgenError::FileAlreadyExists(
                 route_path.display().to_string(),
             ));
         }
 
-        let template = self.load_template(templates_dir)?;
+        let templates_dir = resource_templates(self.context.database);
+
+        let template = Self::load_template(templates_dir)?;
+
         let renderer = TemplateRenderer {
             name: self.name.clone(),
             collection: None,
         };
+
         let content = renderer.render_template(template);
 
         self.ensure_routes_directory(&routes_directory_path)?;
 
-        let writer = FileWriter::new(self.force, self.dry_run);
+        let writer = FileWriter::new(self.context.force, self.context.dry_run);
+
         writer.write_file(&route_path, &content)?;
 
-        self.ensure_routes_mod_file(&self.name)?;
-        self.ensure_main_file_uses_route(&self.name)?;
+        self.ensure_routes_mod_file()?;
+        self.ensure_main_file_uses_route()?;
 
         Ok(())
     }

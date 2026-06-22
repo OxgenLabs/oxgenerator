@@ -1,6 +1,8 @@
+pub mod database;
 pub mod error;
 pub mod file_writer;
 pub mod generator;
+pub mod generator_context;
 pub mod naming;
 pub mod project_detector;
 pub mod result;

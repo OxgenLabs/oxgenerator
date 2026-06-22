@@ -1,6 +1,8 @@
 use std::io::BufRead;
 use std::path::Path;
+use std::str::FromStr;
 
+use crate::core::database::DatabaseEngine;
 use crate::core::error::OxgenError;
 use crate::core::result::OxgenResult;
 
@@ -31,13 +33,13 @@ pub fn ensure_oxgen_project_root() -> OxgenResult<()> {
     Ok(())
 }
 
-pub fn which_db_engine() -> OxgenResult<String> {
-    ensure_rust_project_root()?;
+pub fn which_db_engine() -> OxgenResult<DatabaseEngine> {
+    ensure_oxgen_project_root()?;
 
-    let oxgen_config =
+    let config_file =
         std::fs::File::open(".oxgen/config.toml").map_err(|_| OxgenError::OxgenProjectNotFound)?;
 
-    let reader = std::io::BufReader::new(oxgen_config);
+    let reader = std::io::BufReader::new(config_file);
 
     for line in reader.lines() {
         let line = line?;
@@ -57,11 +59,8 @@ pub fn which_db_engine() -> OxgenResult<String> {
 
         let value = value.trim().trim_matches('"');
 
-        return match value {
-            "none" | "mock" | "mongodb" => Ok(value.to_string()),
-            _ => Err(OxgenError::UnknownDatabase),
-        };
+        return DatabaseEngine::from_str(value);
     }
 
-    Ok("mock".to_string())
+    Ok(DatabaseEngine::Mock)
 }
