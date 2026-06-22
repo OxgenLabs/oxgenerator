@@ -267,10 +267,6 @@ The project should stay lightweight. The generator should focus on commands that
     - [x] Automatically initialize a Git repository when creating a new package.
     - [x] Add better error messages for invalid project names, missing arguments and existing folders.
     - [x] Improve the CLI help output.
-    - [x] Add tests for the `new` generator.
-    - [x] Add tests for project name validation.
-    - [x] Add tests for the CLI parser.
-    - [x] Add tests for template rendering.
 - [x] Complete the `generate` command.
     - [x] Generate full modules.
     - [x] Generate controllers.
@@ -279,7 +275,6 @@ The project should stay lightweight. The generator should focus on commands that
     - [x] Generate routes.
     - [x] Generate DTOs or payload structs.
     - [x] Add aliases such as `g`, `mod`, `ctrl` and `svc`.
-    - [x] Add tests for module, controller, service, model, routes and dto generators.
 - [x] Add update command.
 - [x] Add CI for formatting.
 - [x] Add CI for linting.
@@ -291,15 +286,15 @@ The project should stay lightweight. The generator should focus on commands that
 - [ ] Add examples showing how to create and extend a generated project.
 - [ ] Investigate whether project dependencies should use fixed versions or the latest compatible versions.
 - [ ] Support databases.
-    - [ ] MongoDB
-        - [x] Create new project with MongoDB.
-        - [ ] Generate full modules with MongoDB.
-        - [ ] Generate controllers with MongoDB.
-        - [ ] Generate services with MongoDB.
-        - [ ] Generate models with MongoDB.
-        - [ ] Generate routes with MongoDB.
-        - [ ] Generate DTOs or payload structs with MongoDB.
+    - [x] MongoDB
     - [ ] PostgreSQL
+        - [ ] Create new project with PostgreSQL.
+        - [ ] Generate full modules with PostgreSQL.
+        - [ ] Generate controllers with PostgreSQL.
+        - [ ] Generate services with PostgreSQL.
+        - [ ] Generate models with PostgreSQL.
+        - [ ] Generate routes with PostgreSQL.
+        - [ ] Generate DTOs with PostgreSQL.
 ## Development
 
 Clone the repository:
@@ -326,7 +321,6 @@ Run checks:
 ```bash
 cargo fmt
 cargo clippy
-cargo test
 ```
 
 Build the binary:
@@ -358,8 +352,7 @@ Before opening a pull request, please make sure the project is formatted and pas
 
 ```bash
 cargo fmt
-cargo clippy
-cargo test
+cargo clippy 
 ```
 
 ## License
