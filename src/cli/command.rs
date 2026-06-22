@@ -1,20 +1,20 @@
+use crate::core::database::DatabaseEngine;
 use crate::core::generator::Generator;
+use crate::core::generator_context::GeneratorContext;
 use crate::core::naming::Name;
 use crate::core::result::OxgenResult;
-use crate::generators::dto::DtoGenerator;
-use crate::generators::route::RouteGenerator;
 use crate::generators::{
-    controller::ControllerGenerator, model::ModelGenerator, module::ModuleGenerator,
-    new_project::NewProjectGenerator, service::ServiceGenerator,
+    controller::ControllerGenerator, dto::DtoGenerator, model::ModelGenerator,
+    module::ModuleGenerator, new_project::NewProjectGenerator, route::RouteGenerator,
+    service::ServiceGenerator,
 };
 
-#[derive(Debug, PartialEq)]
 pub enum Command {
     New {
         name: Name,
         force: bool,
         dry_run: bool,
-        database: String,
+        database: Option<DatabaseEngine>,
     },
     Generate {
         generator: GeneratorCommand,
@@ -24,45 +24,32 @@ pub enum Command {
     Update,
 }
 
-#[derive(Debug, PartialEq)]
 pub enum GeneratorCommand {
     Module {
         name: Name,
-        force: bool,
-        dry_run: bool,
-        database: String,
-        collection: Option<String>
+        context: GeneratorContext,
+        collection: Option<String>,
     },
     Controller {
         name: Name,
-        force: bool,
-        dry_run: bool,
-        database: String,
+        context: GeneratorContext,
         collection: Option<String>,
     },
     Service {
         name: Name,
-        force: bool,
-        dry_run: bool,
-        database: String,
+        context: GeneratorContext,
     },
     Model {
         name: Name,
-        force: bool,
-        dry_run: bool,
-        database: String,
+        context: GeneratorContext,
     },
     Dto {
         name: Name,
-        force: bool,
-        dry_run: bool,
-        database: String,
+        context: GeneratorContext,
     },
     Route {
         name: Name,
-        force: bool,
-        dry_run: bool,
-        database: String,
+        context: GeneratorContext,
     },
 }
 
@@ -76,51 +63,7 @@ impl Command {
                 database,
             } => NewProjectGenerator::new(name, force, dry_run, database).generate(),
 
-            Command::Generate { generator } => match generator {
-                GeneratorCommand::Module {
-                    name,
-                    force,
-                    dry_run,
-                    database,
-                    collection
-                } => ModuleGenerator::new(name, force, dry_run, database, collection).generate(),
-
-                GeneratorCommand::Controller {
-                    name,
-                    force,
-                    dry_run,
-                    database,
-                    collection,
-                } => {
-                    ControllerGenerator::new(name, force, dry_run, database, collection).generate()
-                }
-
-                GeneratorCommand::Service {
-                    name,
-                    force,
-                    dry_run,
-                    database,
-                } => ServiceGenerator::new(name, force, dry_run, database).generate(),
-
-                GeneratorCommand::Model {
-                    name,
-                    force,
-                    dry_run,
-                    database,
-                } => ModelGenerator::new(name, force, dry_run, database).generate(),
-                GeneratorCommand::Dto {
-                    name,
-                    force,
-                    dry_run,
-                    database,
-                } => DtoGenerator::new(name, force, dry_run, database).generate(),
-                GeneratorCommand::Route {
-                    name,
-                    force,
-                    dry_run,
-                    database,
-                } => RouteGenerator::new(name, force, dry_run, database).generate(),
-            },
+            Command::Generate { generator } => generator.execute(),
 
             Command::Help => {
                 crate::cli::help::print_help();
@@ -128,12 +71,42 @@ impl Command {
             }
 
             Command::Version => {
-                println!("oxgen {}", env!("CARGO_PKG_VERSION"));
+                println!("{}", env!("CARGO_PKG_VERSION"));
                 Ok(())
             }
-            Command::Update => {
-                crate::core::updater::update()?;
-                Ok(())
+
+            Command::Update => crate::core::updater::update(),
+        }
+    }
+}
+
+impl GeneratorCommand {
+    pub fn execute(self) -> OxgenResult<()> {
+        match self {
+            GeneratorCommand::Module {
+                name,
+                context,
+                collection,
+            } => ModuleGenerator::new(name, context, collection).generate(),
+
+            GeneratorCommand::Controller {
+                name,
+                context,
+                collection,
+            } => ControllerGenerator::new(name, context, collection).generate(),
+
+            GeneratorCommand::Service { name, context } => {
+                ServiceGenerator::new(name, context).generate()
+            }
+
+            GeneratorCommand::Model { name, context } => {
+                ModelGenerator::new(name, context).generate()
+            }
+
+            GeneratorCommand::Dto { name, context } => DtoGenerator::new(name, context).generate(),
+
+            GeneratorCommand::Route { name, context } => {
+                RouteGenerator::new(name, context).generate()
             }
         }
     }

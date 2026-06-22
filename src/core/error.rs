@@ -23,6 +23,8 @@ pub enum OxgenError {
     RustBuiltInPackageName(String),
     GitInitFailed(String),
     InquireMenuInteractionFailed(String),
+    CollectionUnsupportedGenerator(String),
+    CollectionRequiresMongoDb,
     UnknownDatabase,
 }
 
@@ -188,6 +190,18 @@ impl fmt::Display for OxgenError {
                 write!(
                     f,
                     "unknown database engine\n\nhelp: choose one of: `mock`, `mongo`.\n\nRun `oxgen help` to see usage and options."
+                )
+            }
+            OxgenError::CollectionUnsupportedGenerator(generator) => {
+                write!(
+                    f,
+                    "the --collection option is not supported by the `{generator}` generator"
+                )
+            }
+            OxgenError::CollectionRequiresMongoDb => {
+                write!(
+                    f,
+                    "the --collection option can only be used with a MongoDB project"
                 )
             }
         }
