@@ -1,14 +1,8 @@
-use oxgen::cli::parser::parse_args;
-use oxgen::core::result::OxgenResult;
+use oxgen::core::cli::parse_cli;
+use oxgen::core::error::OxgeneratorError;
+use oxgen::core::result::OxgeneratorResult;
 
-fn main() {
-    if let Err(error) = run() {
-        eprintln!("error: {}", error);
-        std::process::exit(1);
-    }
+fn main() -> OxgeneratorResult<(), OxgeneratorError> {
+    parse_cli()
 }
 
-fn run() -> OxgenResult<()> {
-    let command = parse_args(std::env::args().skip(1).collect())?;
-    command.execute()
-}

@@ -1,3 +1,3 @@
-use crate::core::error::OxgenError;
+use crate::core::error::OxgeneratorError;
 
-pub type OxgenResult<T> = Result<T, OxgenError>;
+pub type OxgeneratorResult<T, E = OxgeneratorError> = Result<T, E>;
